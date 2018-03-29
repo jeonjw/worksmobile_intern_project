@@ -55,8 +55,6 @@ public class MediaStoreEventService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        super.onStartCommand(intent, flags, startId);
-
         if (countCursor != null) {
             countCursor.moveToFirst();
             storageCount = countCursor.getInt(0);

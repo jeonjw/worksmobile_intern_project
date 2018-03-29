@@ -1,29 +1,45 @@
-package com.worksmobile.wmproject;
+package com.worksmobile.wmproject.android_job;
 
-import android.app.job.JobParameters;
-import android.app.job.JobService;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Handler;
+import android.os.Looper;
 import android.provider.MediaStore;
-import android.support.annotation.RequiresApi;
+import android.support.annotation.NonNull;
+
+import com.evernote.android.job.Job;
+import com.evernote.android.job.JobRequest;
+import com.worksmobile.wmproject.MyBroadCastReceiver;
+
+import java.util.concurrent.TimeUnit;
 
 
-@RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-public class MediaJobService extends JobService {
+public class MediaStoreJob extends Job {
+
+    public static final String TAG = "MEDIA_STORE_JOB_TAG";
 
     private int storageCount;
     private Cursor countCursor;
+    private ContentResolver contentResolver;
     private static final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
     private MediaStorageObserver mediaStorageObserver;
 
     @Override
-    public boolean onStartJob(JobParameters jobParameters) {
-        countCursor = getContentResolver().query(uri,
+    protected void onCancel() {
+        System.out.println("onCancel");
+        unregisterObserver();
+        super.onCancel();
+    }
+
+    @NonNull
+    @Override
+    protected Result onRunJob(@NonNull Params params) {
+        contentResolver = getContext().getContentResolver();
+        countCursor = contentResolver.query(uri,
                 new String[]{"count(*) AS count"},
                 null,
                 null,
@@ -38,26 +54,30 @@ public class MediaJobService extends JobService {
 
         registerObserver();
 
-        return true;
+        return Result.RESCHEDULE;
     }
 
+
     @Override
-    public boolean onStopJob(JobParameters jobParameters) {
-        System.out.println("JOB 종료");
-        unregisterObserver();
-        return true;
+    protected void onReschedule(int newJobId) {
+        System.out.println("RESCHDULE");
+        registerObserver();
+        super.onReschedule(newJobId);
     }
 
     private void registerObserver() {
+        Looper.prepare();
+
         if (mediaStorageObserver == null) {
             mediaStorageObserver = new MediaStorageObserver(new Handler());
-            getContentResolver().registerContentObserver(uri, true, mediaStorageObserver);
+            contentResolver.registerContentObserver(uri, true, mediaStorageObserver);
         }
+        Looper.loop();
     }
 
     private void unregisterObserver() {
-        if (getContentResolver() != null) {
-            getContentResolver().unregisterContentObserver(mediaStorageObserver);
+        if (contentResolver != null) {
+            contentResolver.unregisterContentObserver(mediaStorageObserver);
         }
         if (mediaStorageObserver != null) {
             mediaStorageObserver = null;
@@ -76,7 +96,7 @@ public class MediaJobService extends JobService {
             int previousCount = storageCount;
 
 
-            countCursor = getContentResolver().query(uri,
+            countCursor = contentResolver.query(uri,
                     new String[]{"count(*) AS count"},
                     null,
                     null,
@@ -99,6 +119,20 @@ public class MediaJobService extends JobService {
     }
 
     private void sendDriveBroadCast() {
-        sendBroadcast(new Intent("com.worksmobile.wm_project.NEW_MEDIA"),Manifest.permission.NEW_MEDIA);
+        Intent intent = new Intent();
+        intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
+        intent.setClass(getContext(), MyBroadCastReceiver.class);
+        getContext().sendBroadcast(intent);
+    }
+
+    public static void scheduleJob() {
+        new JobRequest.Builder(MediaStoreJob.TAG)
+                .setExecutionWindow(10L, TimeUnit.MINUTES.toMillis(15))
+//                .setPeriodic(TimeUnit.MINUTES.toMillis(16))
+                .setBackoffCriteria(1000, JobRequest.BackoffPolicy.LINEAR)
+                .setRequirementsEnforced(true)
+                .setUpdateCurrent(true)
+                .build()
+                .schedule();
     }
 }

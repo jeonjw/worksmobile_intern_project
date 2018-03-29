@@ -1,4 +1,4 @@
-package com.worksmobile.wm_project;
+package com.worksmobile.wmproject;
 
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;

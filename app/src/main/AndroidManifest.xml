@@ -8,8 +8,15 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    <permission
+        android:name="com.worksmobile.wm_project.NEW_MEDIA"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.worksmobile.wm_project.NEW_MEDIA" />
+
 
     <application
+        android:name=".android_job.MainApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:installLocation="internalOnly"
@@ -39,16 +46,24 @@
             </intent-filter>
         </activity>
 
-        <!--<activity android:name=".GoogleUploadTestActivity">-->
+        <receiver
+            android:name=".MyBroadCastReceiver"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="com.worksmobile.wm_project.NEW_MEDIA">
+            <intent-filter android:priority="2147483647">
+                <action android:name="com.worksmobile.wm_project.NEW_MEDIA" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
 
-
-        <!--</activity>-->
+            </intent-filter>
+        </receiver>
 
         <service android:name=".MediaStoreEventService" />
         <service
             android:name=".MediaJobService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service android:name=".BackgroundDriveService" />
 
     </application>
 

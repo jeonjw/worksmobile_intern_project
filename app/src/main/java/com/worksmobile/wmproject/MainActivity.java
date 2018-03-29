@@ -23,14 +23,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
-import com.google.android.gms.auth.api.signin.GoogleSignIn;
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
-import com.google.android.gms.common.api.ApiException;
-import com.google.android.gms.common.api.Scope;
-import com.google.android.gms.tasks.OnCompleteListener;
-import com.google.android.gms.tasks.Task;
+import com.worksmobile.wmproject.android_job.MediaStoreJob;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
@@ -51,7 +44,6 @@ public class MainActivity extends AppCompatActivity {
     private AuthorizationService authorizationService;
 
 
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,12 +53,16 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
                 appAuthSignIn();
+
             }
         });
         findViewById(R.id.stop_service).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
+                Intent intent = new Intent();
+                intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
+                intent.setClass(MainActivity.this, MyBroadCastReceiver.class);
+                sendBroadcast(intent);
             }
         });
 
@@ -79,7 +75,9 @@ public class MainActivity extends AppCompatActivity {
             channelMessage.enableVibration(true);
             channelMessage.setVibrationPattern(new long[]{100, 200, 100, 200});
             channelMessage.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
-            notificationManager.createNotificationChannel(channelMessage);
+            if (notificationManager != null) {
+                notificationManager.createNotificationChannel(channelMessage);
+            }
         }
 
         checkPermission();
@@ -135,7 +133,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         break;
                     default:
-                        // do nothing
+                        break;
                 }
             }
         }
@@ -169,8 +167,8 @@ public class MainActivity extends AppCompatActivity {
                         if (tokenResponse != null) {
                             authState.update(tokenResponse, null);
                             persistAuthState(authState);
-                            final Intent intent = new Intent(MainActivity.this, MediaStoreEventService.class);
-//                            startService(intent);
+
+//                            MediaStoreJob.scheduleJob();
                             setJobSchedule();
                             Log.i("MainActivity", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
                             service.dispose();
@@ -198,7 +196,14 @@ public class MainActivity extends AppCompatActivity {
             }
         } else {
             //startService 해주기
+
+//            final Intent intent = new Intent(MainActivity.this, MediaStoreEventService.class);
+//            startService(intent);
         }
+    }
+
+    private void setAndroidJob(){
+
     }
 
 

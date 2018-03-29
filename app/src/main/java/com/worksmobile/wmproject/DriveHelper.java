@@ -211,21 +211,9 @@ public class DriveHelper {
             public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
                 String message = DriveUtils.printResponse("uploadFile", response);
                 if (message == null) {
-                    moveFile(response.body().getId(), folderId, new StateCallback() {
-                        @Override
-                        public void onSuccess() {
-                            if (callback != null) {
-                                callback.onSuccess();
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(String msg) {
-                            if (callback != null) {
-                                callback.onFailure(msg);
-                            }
-                        }
-                    });
+                    if (callback != null) {
+                        callback.onSuccess();
+                    }
                 } else {
                     if (callback != null) {
                         callback.onFailure(message);
