@@ -62,7 +62,7 @@ public class BackgroundDriveService extends Service {
 
     @Override
     public void onDestroy() {
-        System.out.println("Service Destroy");
+        System.out.println("Upload Service Destroy");
         super.onDestroy();
     }
 
@@ -126,7 +126,7 @@ public class BackgroundDriveService extends Service {
 
             NotificationCompat.Builder mBuilder =
                     new NotificationCompat.Builder(this)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setSmallIcon(R.drawable.android)
                             .setContentTitle("My notification")
                             .setContentText("Hello World!")
                             .setDefaults(Notification.DEFAULT_ALL)

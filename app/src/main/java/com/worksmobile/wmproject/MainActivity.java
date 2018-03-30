@@ -23,7 +23,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
+import com.worksmobile.wmproject.service.ConnectivityJobService;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
+import com.worksmobile.wmproject.service.MediaStoreService;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
@@ -181,24 +183,28 @@ public class MainActivity extends AppCompatActivity {
 
     private void setJobSchedule() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            JobInfo job = new JobInfo.Builder(101, new ComponentName(this, MediaStoreJobService.class))
-                    .setRequiresDeviceIdle(false)
-                    .setBackoffCriteria(1000, JobInfo.BACKOFF_POLICY_LINEAR)
+            JobInfo mediaStoreJob = new JobInfo.Builder(101, new ComponentName(this, MediaStoreJobService.class))
+                    .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setPersisted(true)
                     .build();
+
+            JobInfo connectivityJob = new JobInfo.Builder(102, new ComponentName(this, ConnectivityJobService.class))
+                    .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                    .setPersisted(true)
+                    .build();
+
             JobScheduler jobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
             if (jobScheduler != null) {
-                jobScheduler.schedule(job);
+                jobScheduler.schedule(mediaStoreJob);
+                jobScheduler.schedule(connectivityJob);
             }
         } else {
-            //startService 해주기
-
-//            final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
-//            startService(intent);
+            final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
+            startService(intent);
         }
     }
-
 
     private void checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

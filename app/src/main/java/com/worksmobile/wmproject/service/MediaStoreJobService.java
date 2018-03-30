@@ -2,6 +2,7 @@ package com.worksmobile.wmproject.service;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
+import android.content.BroadcastReceiver;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -26,6 +27,7 @@ public class MediaStoreJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters jobParameters) {
         registerObserver();
+
         return true;
     }
 

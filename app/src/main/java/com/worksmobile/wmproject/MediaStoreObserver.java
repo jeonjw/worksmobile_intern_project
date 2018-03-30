@@ -56,7 +56,7 @@ public class MediaStoreObserver extends ContentObserver {
             System.out.println("사진 추가는 아님");
         }
 
-        System.out.println(" JOB_SERVICE : 스토리지 갯수 : " + storageCount);
+        System.out.println(" Observer : 스토리지 갯수 : " + storageCount);
         countCursor.close();
     }
 

@@ -16,7 +16,6 @@
 
 
     <application
-        android:name=".android_job.MainApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:installLocation="internalOnly"
@@ -51,7 +50,9 @@
             android:enabled="true"
             android:exported="true"
             android:permission="com.worksmobile.wm_project.NEW_MEDIA">
-            <intent-filter android:priority="2147483647">
+            <intent-filter android:priority="999">
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE_V24" />
                 <action android:name="com.worksmobile.wm_project.NEW_MEDIA" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
 
@@ -63,6 +64,11 @@
             android:name=".service.MediaStoreJobService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <service
+            android:name=".service.ConnectivityJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
         <service android:name=".service.BackgroundDriveService" />
 
     </application>
