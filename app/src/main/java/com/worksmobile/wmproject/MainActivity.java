@@ -23,7 +23,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
-import com.worksmobile.wmproject.android_job.MediaStoreJob;
+import com.worksmobile.wmproject.service.MediaStoreJobService;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
@@ -167,9 +167,6 @@ public class MainActivity extends AppCompatActivity {
                         if (tokenResponse != null) {
                             authState.update(tokenResponse, null);
                             persistAuthState(authState);
-
-//                            MediaStoreJob.scheduleJob();
-                            setJobSchedule();
                             Log.i("MainActivity", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
                             service.dispose();
                         }
@@ -184,10 +181,10 @@ public class MainActivity extends AppCompatActivity {
 
     private void setJobSchedule() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            JobInfo job = new JobInfo.Builder(101, new ComponentName(this, MediaJobService.class))
+            JobInfo job = new JobInfo.Builder(101, new ComponentName(this, MediaStoreJobService.class))
                     .setRequiresDeviceIdle(false)
                     .setBackoffCriteria(1000, JobInfo.BACKOFF_POLICY_LINEAR)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
                     .setPersisted(true)
                     .build();
             JobScheduler jobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
@@ -197,20 +194,16 @@ public class MainActivity extends AppCompatActivity {
         } else {
             //startService 해주기
 
-//            final Intent intent = new Intent(MainActivity.this, MediaStoreEventService.class);
+//            final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
 //            startService(intent);
         }
-    }
-
-    private void setAndroidJob(){
-
     }
 
 
     private void checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                //Do something
+                setJobSchedule();
             } else {
                 if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)) {
                     Toast.makeText(this, "권한 허용", Toast.LENGTH_SHORT).show();
@@ -219,7 +212,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
         } else {
-            //Do something
+            setJobSchedule();
         }
     }
 
@@ -229,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
         switch (requestCode) {
             case READ_EXTERNAL_STORAGE_PERMISSION:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    //Do something
+                    setJobSchedule();
                 }
                 break;
             default:

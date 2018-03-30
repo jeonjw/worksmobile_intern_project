@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject;
+package com.worksmobile.wmproject.service;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -14,6 +14,10 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
+
+import com.worksmobile.wmproject.DriveHelper;
+import com.worksmobile.wmproject.R;
+import com.worksmobile.wmproject.StateCallback;
 
 import net.openid.appauth.AuthState;
 import net.openid.appauth.AuthorizationException;
