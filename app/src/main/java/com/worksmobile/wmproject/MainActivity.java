@@ -33,7 +33,6 @@ import net.openid.appauth.AuthorizationRequest;
 import net.openid.appauth.AuthorizationResponse;
 import net.openid.appauth.AuthorizationService;
 import net.openid.appauth.AuthorizationServiceConfiguration;
-import net.openid.appauth.TokenResponse;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -175,6 +174,7 @@ public class MainActivity extends AppCompatActivity {
             JobInfo mediaStoreJob = new JobInfo.Builder(101, new ComponentName(this, MediaStoreJobService.class))
                     .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
                     .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                    .setOverrideDeadline(3000)
                     .setPersisted(true)
                     .build();
 

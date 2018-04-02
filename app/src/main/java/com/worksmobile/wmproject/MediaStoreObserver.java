@@ -71,7 +71,7 @@ public class MediaStoreObserver extends ContentObserver {
         System.out.println("INIT DB");
         dbHelper = new DBHelpler(context);
 
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        SQLiteDatabase db = dbHelper.getWritableDatabase();
 //        db.execSQL(ContractDB.SQL_CREATE_TBL);
 //        db.execSQL(ContractDB.SQL_DELETE);
 //        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
@@ -83,7 +83,7 @@ public class MediaStoreObserver extends ContentObserver {
         ContentValues values = new ContentValues();
         values.put(ContractDB.COL_LOACTION, location);
 
-        long newRowId = db.insert(ContractDB.TBL_CONTACT, null, values);
+        db.insert(ContractDB.TBL_CONTACT, null, values);
     }
 
     private void sendDriveBroadCast() {

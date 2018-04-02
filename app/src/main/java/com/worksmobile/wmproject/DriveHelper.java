@@ -198,7 +198,9 @@ public class DriveHelper {
     }
 
     public void uploadFile(File srcFile, String title, final String folderId, final StateCallback callback) {
-        System.out.println("존재여부" + srcFile.exists());
+        if (!srcFile.exists())
+            return;
+
         MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
         String content = "{\"name\": \"" + title + "\"}";
         MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.widget.Toast;
 
@@ -11,7 +12,6 @@ import com.worksmobile.wmproject.service.BackgroundDriveService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
 public class MyBroadCastReceiver extends BroadcastReceiver {
-    private int networkStatus;
     private ConnectivityManager manager;
 
     @Override
@@ -28,10 +28,7 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
             case "com.worksmobile.wm_project.NEW_MEDIA":
                 int networkType = manager.getActiveNetworkInfo().getType();
                 if (networkType == ConnectivityManager.TYPE_WIFI || networkType == ConnectivityManager.TYPE_WIMAX)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-                        context.startForegroundService(serviceIntent);
-                    else
-                        context.startService(serviceIntent);
+                    startUploadService(context);
                 break;
             case "android.intent.action.BOOT_COMPLETED":
                 context.startService(new Intent(context, MediaStoreService.class));
@@ -42,12 +39,24 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                 break;
             case "android.net.conn.CONNECTIVITY_CHANGE_V24":
                 System.out.println("ConnectivityChange_V24");
+                if (manager == null)
+                    manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+                NetworkInfo networkInfo = manager.getActiveNetworkInfo();
 
-                if(networkStatus != manager.getActiveNetworkInfo().getType()){
-                    System.out.println("NetWork 달라짐");
+
+                if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+                    if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)
+                        startUploadService(context);
                 }
-                networkStatus = manager.getActiveNetworkInfo().getType();
                 break;
         }
+    }
+
+    private void startUploadService(Context context) {
+        Intent serviceIntent = new Intent(context, BackgroundDriveService.class);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            context.startForegroundService(serviceIntent);
+        else
+            context.startService(serviceIntent);
     }
 }
