@@ -2,7 +2,6 @@ package com.worksmobile.wmproject.service;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
-import android.content.BroadcastReceiver;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -17,6 +16,7 @@ public class MediaStoreJobService extends JobService {
 
     private static final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
 
+
     private MediaStoreObserver mediaStoreObserver;
 
     public MediaStoreJobService() {
@@ -27,7 +27,6 @@ public class MediaStoreJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters jobParameters) {
         registerObserver();
-
         return true;
     }
 
@@ -54,4 +53,6 @@ public class MediaStoreJobService extends JobService {
             mediaStoreObserver = null;
         }
     }
+
+
 }

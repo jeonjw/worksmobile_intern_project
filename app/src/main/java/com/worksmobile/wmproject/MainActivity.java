@@ -8,6 +8,7 @@ import android.app.PendingIntent;
 import android.app.Service;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -20,7 +21,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
-import android.view.View;
 import android.widget.Toast;
 
 import com.worksmobile.wmproject.service.ConnectivityJobService;
@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String SCOPE = "https://www.googleapis.com/auth/drive";
 
     private AuthorizationService authorizationService;
+    private BroadcastReceiver receiver;
 
 
     @Override
@@ -51,21 +52,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        findViewById(R.id.start_service).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                appAuthSignIn();
-
-            }
-        });
-        findViewById(R.id.stop_service).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Intent intent = new Intent();
-                intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
-                intent.setClass(MainActivity.this, MyBroadCastReceiver.class);
-                sendBroadcast(intent);
-            }
+        findViewById(R.id.start_service).setOnClickListener(view -> appAuthSignIn());
+        findViewById(R.id.stop_service).setOnClickListener(view -> {
+            Intent intent = new Intent();
+            intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
+            intent.setClass(MainActivity.this, MyBroadCastReceiver.class);
+            sendBroadcast(intent);
         });
 
 
@@ -160,18 +152,15 @@ public class MainActivity extends AppCompatActivity {
         if (response != null) {
             Log.i("MainActivity", String.format("Handled Authorization Response %s ", authState.toJsonString()));
             final AuthorizationService service = new AuthorizationService(this);
-            service.performTokenRequest(response.createTokenExchangeRequest(), new AuthorizationService.TokenResponseCallback() {
-                @Override
-                public void onTokenRequestCompleted(@Nullable TokenResponse tokenResponse, @Nullable AuthorizationException exception) {
-                    if (exception != null) {
-                        Log.w("MainActivity", "Token Exchange failed", exception);
-                    } else {
-                        if (tokenResponse != null) {
-                            authState.update(tokenResponse, null);
-                            persistAuthState(authState);
-                            Log.i("MainActivity", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
-                            service.dispose();
-                        }
+            service.performTokenRequest(response.createTokenExchangeRequest(), (tokenResponse, exception) -> {
+                if (exception != null) {
+                    Log.w("MainActivity", "Token Exchange failed", exception);
+                } else {
+                    if (tokenResponse != null) {
+                        authState.update(tokenResponse, null);
+                        persistAuthState(authState);
+                        Log.i("MainActivity", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
+                        service.dispose();
                     }
                 }
             });
@@ -204,7 +193,10 @@ public class MainActivity extends AppCompatActivity {
             final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
             startService(intent);
         }
+
+
     }
+
 
     private void checkPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {

@@ -3,18 +3,21 @@ package com.worksmobile.wmproject.service;
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.IBinder;
-import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
+import com.worksmobile.wmproject.ContractDB;
+import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.StateCallback;
@@ -54,9 +57,26 @@ public class BackgroundDriveService extends Service {
                 refreshToken();
             mDriveHelper.setAccessToken(authState.getAccessToken());
         }
+
+
+        printDBList();
         createNotification();
 
+
         return START_NOT_STICKY;
+    }
+
+    private void printDBList() {
+        DBHelpler dbHelper = new DBHelpler(this);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT, null);
+
+
+        while (cursor.moveToNext()) {
+            System.out.println("CURSOR " + cursor.getInt(0));
+            System.out.println("CURSOR " + cursor.getString(1));
+        }
+
     }
 
 
@@ -102,11 +122,12 @@ public class BackgroundDriveService extends Service {
                     if (tokenResponse != null) {
                         authState.update(tokenResponse, null);
                         persistAuthState(authState);
-                        Log.i("TAG", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
+                        Log.i("TAG", String.format("Token Refresh Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
                     }
                 }
             }
         });
+        service.dispose();
     }
 
     private void createNotification() {
@@ -138,24 +159,23 @@ public class BackgroundDriveService extends Service {
             }
         }
 
-        getLastPicture();
+        uploadToDrive();
     }
 
-    private void getLastPicture() {
-        String[] projection = new String[]{
-                MediaStore.Images.ImageColumns._ID,
-                MediaStore.Images.ImageColumns.DATA,
-                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
-                MediaStore.Images.ImageColumns.DATE_TAKEN,
-                MediaStore.Images.ImageColumns.MIME_TYPE
-        };
-        final Cursor cursor = getContentResolver()
-                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
-                        null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
+    private void uploadToDrive() {
+        DBHelpler dbHelper = new DBHelpler(this);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT, null);
+        String imageLocation = null;
 
-        if (cursor != null && cursor.moveToFirst()) {
-            String imageLocation = cursor.getString(1);
-            System.out.println("LOCATION : " + imageLocation);
+        if (cursor.moveToFirst()) {
+            imageLocation = cursor.getString(1);
+            db.delete(ContractDB.TBL_CONTACT, ContractDB.COL_LOACTION + "=?", new String[]{imageLocation});
+        }
+
+
+        if (imageLocation != null) {
+            String finalImageLocation = imageLocation;
             mDriveHelper.uploadFile(new File(imageLocation), TEST_FOLDER_ID, new StateCallback() {
                 @Override
                 public void onSuccess() {
@@ -164,11 +184,15 @@ public class BackgroundDriveService extends Service {
 
                 @Override
                 public void onFailure(String msg) {
-                    System.out.println("업로드 실패 뭔가 정책을 정해서 결정할것");
+                    SQLiteDatabase db = dbHelper.getWritableDatabase();
+                    ContentValues values = new ContentValues();
+                    values.put(ContractDB.COL_LOACTION, finalImageLocation);
+
+                    db.insert(ContractDB.TBL_CONTACT, null, values);
+                    System.out.println("업로드 실패");
                 }
             });
         }
-
-
     }
+
 }
