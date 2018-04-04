@@ -59,7 +59,7 @@ public class DriveHelper {
                 String message = DriveUtils.printResponse("getToken", response);
                 if (message == null) {
                     token = response.body();
-                    token.setTokenTimestamp(System.currentTimeMillis());
+                    token.setTokenTimeStamp(System.currentTimeMillis());
 
                     if (callback != null) {
                         callback.onSuccess(token);
@@ -91,6 +91,7 @@ public class DriveHelper {
                 if (message == null) {
                     Token refreshTtoken = response.body();
                     token.setAccessToken(refreshTtoken.getAccessToken());
+                    token.setTokenTimeStamp(System.currentTimeMillis());
                     if (callback != null) {
                         callback.onSuccess(token);
                     }

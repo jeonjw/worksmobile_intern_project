@@ -72,6 +72,7 @@ public class MediaStoreObserver extends ContentObserver {
         dbHelper = new DBHelpler(context);
 
 //        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        db.execSQL("DROP TABLE IF EXISTS " + "UPLOAD_TABLE");
 //        db.execSQL(ContractDB.SQL_CREATE_TBL);
 //        db.execSQL(ContractDB.SQL_DELETE);
 //        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
@@ -82,17 +83,15 @@ public class MediaStoreObserver extends ContentObserver {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(ContractDB.COL_LOACTION, location);
+        values.put(ContractDB.COL_STATUS, "UPLOAD");
 
         db.insert(ContractDB.TBL_CONTACT, null, values);
     }
 
     private void sendDriveBroadCast() {
-//        context.sendBroadcast(new Intent("com.worksmobile.wm_project.NEW_MEDIA"), Manifest.permission.NEW_MEDIA);
-
         Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
         intent.setClass(context, MyBroadCastReceiver.class);
         context.sendBroadcast(intent);
-
     }
 
 

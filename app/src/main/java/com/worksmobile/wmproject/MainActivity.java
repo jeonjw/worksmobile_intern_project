@@ -68,14 +68,14 @@ public class MainActivity extends AppCompatActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = (android.app.NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-            NotificationChannel channelMessage = new NotificationChannel("WM", "project", NotificationManager.IMPORTANCE_HIGH);
-            channelMessage.setDescription("channel description");
-            channelMessage.enableLights(true);
-            channelMessage.enableVibration(true);
-            channelMessage.setVibrationPattern(new long[]{100, 200, 100, 200});
-            channelMessage.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
+            NotificationChannel notificationChannel = new NotificationChannel("WM", "project", NotificationManager.IMPORTANCE_HIGH);
+            notificationChannel.setDescription("channel description");
+            notificationChannel.enableLights(true);
+            notificationChannel.enableVibration(true);
+            notificationChannel.setVibrationPattern(new long[]{100, 200, 100, 200});
+            notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
             if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channelMessage);
+                notificationManager.createNotificationChannel(notificationChannel);
             }
         }
 

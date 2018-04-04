@@ -13,6 +13,7 @@ import com.worksmobile.wmproject.service.MediaStoreService;
 
 public class MyBroadCastReceiver extends BroadcastReceiver {
     private ConnectivityManager manager;
+    private Intent serviceIntent;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -34,6 +35,10 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
             case "android.net.conn.CONNECTIVITY_CHANGE_V24":
                 if (isUnMeteredNetWork(context))
                     startUploadService(context);
+                else { //와이파이 끊길 시 업로드 서비스 중단.
+                    if (serviceIntent != null)
+                        context.stopService(serviceIntent);
+                }
                 break;
         }
     }

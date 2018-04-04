@@ -23,19 +23,6 @@ import retrofit2.http.Query;
 
 public interface DriveApi {
 
-
-    @POST("/o/oauth2/v2/auth")
-    @FormUrlEncoded
-    Call<Void> getAuthCode(
-            @Field("client_id") String clientId,
-            @Field("redirect_uri") String redirectUri,
-            @Field("response_type") String responseType,
-            @Field("scope") String scope,
-            @Field("prompt") String prompt,
-            @Field("access_type") String accessType
-
-    );
-
     /**
      * https://developers.google.com/identity/protocols/OAuth2InstalledApp
      */

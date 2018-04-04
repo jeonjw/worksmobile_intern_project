@@ -62,17 +62,7 @@
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
 
-        <service
-            android:name=".service.ConnectivityJobService"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
-
         <service android:name=".service.BackgroundDriveService" />
-
-        <service
-            android:name=".service.PhotoContentsJob"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
 
     </application>
 

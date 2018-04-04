@@ -28,8 +28,6 @@ import java.io.File;
 
 public class BackgroundDriveService extends Service {
 
-    private Token token;
-
     public static final String TEST_FOLDER_ID = "0BzHAMvdMNu8aSFNBVFdhWldFM2c";
     private DriveHelper mDriveHelper;
     private DBHelpler dbHelper;
@@ -42,7 +40,7 @@ public class BackgroundDriveService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        token = restoreAuthState();
+        Token token = restoreAuthState();
         dbHelper = new DBHelpler(this);
 
         if (mDriveHelper == null)
@@ -57,9 +55,10 @@ public class BackgroundDriveService extends Service {
                 mDriveHelper.refreshToken(new TokenCallback() {
                     @Override
                     public void onSuccess(Token token) {
-//                        printDBList();
-//                        createNotification();
-//                        uploadToDrive();
+                        persistAuthState(token);
+                        printDBList();
+                        createNotification();
+                        uploadToDrive();
                     }
 
                     @Override
@@ -67,14 +66,12 @@ public class BackgroundDriveService extends Service {
 
                     }
                 });
+            } else {
+                printDBList();
+                createNotification();
+                uploadToDrive();
             }
         }
-
-
-        printDBList();
-        createNotification();
-        uploadToDrive();
-
 
         return START_NOT_STICKY;
     }
@@ -82,14 +79,17 @@ public class BackgroundDriveService extends Service {
     private void printDBList() {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
-        try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT, null)) {
+        try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT_ALL, null)) {
             while (cursor.moveToNext()) {
-                System.out.println("CURSOR " + cursor.getInt(0));
-                System.out.println("CURSOR " + cursor.getString(1));
+                System.out.println("CURSOR " + cursor.getInt(0) + " Location : " + cursor.getString(1) + " STATUS : " + cursor.getString(2));
             }
         }
-
-
+//        System.out.println("--------------------------------------------------------------------");
+//        try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null)) {
+//            while (cursor.moveToNext()) {
+//                System.out.println("LOCATION " + cursor.getString(0));
+//            }
+//        }
     }
 
 
@@ -127,7 +127,6 @@ public class BackgroundDriveService extends Service {
     private void createNotification() {
         NotificationManager notificationManager = (android.app.NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             Notification notification = new Notification.Builder(this, "WM")
                     .setContentTitle("Some Message")
                     .setContentText("You've received new messages!")
@@ -135,10 +134,7 @@ public class BackgroundDriveService extends Service {
                     .build();
 
             startForeground(100, notification);
-
         } else {
-            System.out.println("버전 오레오 미만");
-
             NotificationCompat.Builder mBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.drawable.android)
@@ -147,46 +143,50 @@ public class BackgroundDriveService extends Service {
                             .setDefaults(Notification.DEFAULT_ALL)
                             .setPriority(Notification.PRIORITY_HIGH);
 
-            if (notificationManager != null) {
+            if (notificationManager != null)
                 notificationManager.notify(0, mBuilder.build());
-            }
         }
     }
 
     private void uploadToDrive() {
-        DBHelpler dbHelper = new DBHelpler(this);
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
-        String imageLocation;
-
-        try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT, null)) {
+        try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null)) {
             while (cursor.moveToNext()) {
-                imageLocation = cursor.getString(1);
-                db.delete(ContractDB.TBL_CONTACT, ContractDB.COL_LOACTION + "=?", new String[]{imageLocation});
-                createUploadRequest(imageLocation);
+                String id = cursor.getString(0);
+                String imageLocation = cursor.getString(1);
+
+                ContentValues values = new ContentValues();
+                values.put("STATUS", "UPLOADING");
+
+                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{id});
+                createUploadRequest(imageLocation, id);
             }
         }
         stopSelf();
     }
 
-    private void createUploadRequest(String imageLocation) {
+    private void createUploadRequest(String imageLocation, String id) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
         mDriveHelper.uploadFile(new File(imageLocation), new StateCallback() {
             @Override
             public void onSuccess() {
+                ContentValues values = new ContentValues();
+                values.put("STATUS", "UPLOADED");
+
+                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{id});
                 System.out.println("업로드 성공");
             }
 
             @Override
             public void onFailure(String msg) {
-                SQLiteDatabase db = dbHelper.getWritableDatabase();
                 ContentValues values = new ContentValues();
-                values.put(ContractDB.COL_LOACTION, imageLocation);
+                values.put("STATUS", "UPLOAD");
 
-                db.insert(ContractDB.TBL_CONTACT, null, values);
+                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{id});
                 System.out.println("업로드 실패");
             }
         });
-
     }
 
 }
