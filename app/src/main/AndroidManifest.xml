@@ -28,22 +28,17 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <intent-filter>
-                <action android:name="com.worksmobile.wm_project.HANDLE_AUTHORIZATION_RESPONSE" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </activity>
 
-        <activity android:name="net.openid.appauth.RedirectUriReceiverActivity">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
-
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-
                 <data android:scheme="com.worksmobile.wmproject" />
             </intent-filter>
         </activity>
+
+
+
 
         <receiver
             android:name=".MyBroadCastReceiver"

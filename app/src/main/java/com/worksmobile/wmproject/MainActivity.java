@@ -4,9 +4,7 @@ import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -18,28 +16,33 @@ import android.support.annotation.Nullable;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
+import com.google.gson.Gson;
+import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
-import net.openid.appauth.AuthState;
-import net.openid.appauth.AuthorizationException;
-import net.openid.appauth.AuthorizationRequest;
-import net.openid.appauth.AuthorizationResponse;
-import net.openid.appauth.AuthorizationService;
-import net.openid.appauth.AuthorizationServiceConfiguration;
 
 public class MainActivity extends AppCompatActivity {
 
     private static final int READ_EXTERNAL_STORAGE_PERMISSION = 777;
-    private static final String SHARED_PREFERENCES_NAME = "AuthStatePreference";
+    private static final String SHARED_PREFERENCES_NAME = "TokenStatePreference";
     private static final String AUTH_STATE = "AUTH_STATE";
     private static final String USED_INTENT = "USED_INTENT";
+    private static final String TAG = "MAIN_ACTIVITY";
     private static final String SCOPE = "https://www.googleapis.com/auth/drive";
 
-    private AuthorizationService authorizationService;
-    private BroadcastReceiver receiver;
+
+    public static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
+            "client_id=764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com&" +
+            "response_type=code&" +
+            "access_type=offline&" +
+            "prompt=consent&" +
+            "scope=https://www.googleapis.com/auth/drive&" +
+            "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
 
 
     @Override
@@ -47,7 +50,14 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        findViewById(R.id.start_service).setOnClickListener(view -> appAuthSignIn());
+        findViewById(R.id.start_service).setOnClickListener((View view) -> {
+            Intent intent = new Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse(AUTH_URL));
+
+            startActivity(intent);
+        });
+
         findViewById(R.id.stop_service).setOnClickListener(view -> {
             Intent intent = new Intent();
             intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
@@ -72,42 +82,20 @@ public class MainActivity extends AppCompatActivity {
         checkPermission();
     }
 
-    @Override
-    protected void onDestroy() {
-        if (authorizationService != null)
-            authorizationService.dispose();
-        super.onDestroy();
-    }
-
-    private void appAuthSignIn() {
-        AuthorizationServiceConfiguration serviceConfiguration = new AuthorizationServiceConfiguration(
-                Uri.parse("https://accounts.google.com/o/oauth2/v2/auth") /* auth endpoint */,
-                Uri.parse("https://www.googleapis.com/oauth2/v4/token") /* token endpoint */
-        );
-
-        String clientId = "764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com";
-        Uri redirectUri = Uri.parse("com.worksmobile.wmproject:/oauth2callback");
-        AuthorizationRequest.Builder builder = new AuthorizationRequest.Builder(
-                serviceConfiguration,
-                clientId,
-                AuthorizationRequest.RESPONSE_TYPE_CODE,
-                redirectUri
-        );
-        builder.setScopes(SCOPE);
-        AuthorizationRequest request = builder.build();
-
-        authorizationService = new AuthorizationService(this);
-
-        String action = "com.worksmobile.wm_project.HANDLE_AUTHORIZATION_RESPONSE";
-        Intent postAuthorizationIntent = new Intent(action);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, request.hashCode(), postAuthorizationIntent, 0);
-        authorizationService.performAuthorizationRequest(request, pendingIntent);
-
-    }
-
-    @Override
-    protected void onNewIntent(Intent intent) {
-        checkIntent(intent);
+    private void getAuthCode() {
+        Uri uri = getIntent().getData();
+        if (uri != null)
+            System.out.println("URI : " + uri.toString());
+        if (uri != null && uri.toString().startsWith("com.worksmobile.wmproject:/oauth2callback")) {
+            // use the parameter your API exposes for the code (mostly it's "code")
+            String code = uri.getQueryParameter("code");
+            if (code != null) {
+                System.out.println("TEST: " + code);
+                requestToken(code);
+            } else if (uri.getQueryParameter("error") != null) {
+                // show an error message here
+            }
+        }
     }
 
     private void checkIntent(@Nullable Intent intent) {
@@ -115,9 +103,9 @@ public class MainActivity extends AppCompatActivity {
             String action = intent.getAction();
             if (action != null) {
                 switch (action) {
-                    case "com.worksmobile.wm_project.HANDLE_AUTHORIZATION_RESPONSE":
+                    case Intent.ACTION_VIEW:
                         if (!intent.hasExtra(USED_INTENT)) {
-                            handleAuthorizationResponse(intent);
+                            getAuthCode();
                             intent.putExtra(USED_INTENT, true);
                         }
                         break;
@@ -130,40 +118,38 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
+        System.out.println("Onstart");
         super.onStart();
         checkIntent(getIntent());
     }
 
-    private void persistAuthState(@NonNull AuthState authState) {
-        getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
-                .putString(AUTH_STATE, authState.toJsonString())
+    private void requestToken(String code) {
+        DriveHelper driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null);
+        driveHelper.getToken(new TokenCallback() {
+            @Override
+            public void onSuccess(Token token) {
+                if (token != null)
+                    persistToken(token);
+            }
+
+            @Override
+            public void onFailure(String msg) {
+                Log.e(TAG, msg);
+            }
+        }, code);
+
+    }
+
+
+    private void persistToken(@NonNull Token token) {
+        Gson gson = new Gson();
+        String tokenJson = gson.toJson(token);
+
+        getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE).edit()
+                .putString("TOKEN_STATE", tokenJson)
                 .apply();
     }
 
-    private void handleAuthorizationResponse(@NonNull Intent intent) {
-        AuthorizationResponse response = AuthorizationResponse.fromIntent(intent);
-        AuthorizationException error = AuthorizationException.fromIntent(intent);
-        final AuthState authState = new AuthState(response, error);
-        if (response != null) {
-            Log.i("MainActivity", String.format("Handled Authorization Response %s ", authState.toJsonString()));
-            final AuthorizationService service = new AuthorizationService(this);
-            service.performTokenRequest(response.createTokenExchangeRequest(), (tokenResponse, exception) -> {
-                if (exception != null) {
-                    Log.w("MainActivity", "Token Exchange failed", exception);
-                } else {
-                    if (tokenResponse != null) {
-                        authState.update(tokenResponse, null);
-                        persistAuthState(authState);
-                        Log.i("MainActivity", String.format("Token Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
-                        service.dispose();
-                    }
-                }
-            });
-        } else {
-            System.out.println("정보 없음");
-        }
-
-    }
 
     private void setJobSchedule() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {

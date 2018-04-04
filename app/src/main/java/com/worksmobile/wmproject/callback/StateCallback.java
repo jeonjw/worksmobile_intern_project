@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject;
+package com.worksmobile.wmproject.callback;
 
 public interface StateCallback {
     void onSuccess();

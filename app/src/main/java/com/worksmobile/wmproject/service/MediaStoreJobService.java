@@ -9,7 +9,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
@@ -31,12 +30,7 @@ public class MediaStoreJobService extends JobService {
     private MediaStoreObserver mediaStoreObserver;
     private ConnectivityManager.NetworkCallback networkCallback;
     private ConnectivityManager connectivityManager;
-
-    public MediaStoreJobService() {
-        super();
-        System.out.println("MediaJobService Start");
-
-    }
+    private int firstAvailableCount;
 
     static final JobInfo JOB_MEDIASTORE;
 
@@ -47,6 +41,11 @@ public class MediaStoreJobService extends JobService {
                 .setOverrideDeadline(3000)
                 .setPersisted(true)
                 .build();
+    }
+
+    public MediaStoreJobService() {
+        super();
+        System.out.println("MediaJobService Start");
     }
 
     public static void scheduleJob(Context context) {
@@ -73,7 +72,6 @@ public class MediaStoreJobService extends JobService {
 
     public static void cancelJob(Context context) {
         JobScheduler js = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-
         js.cancel(101);
     }
 
@@ -98,6 +96,7 @@ public class MediaStoreJobService extends JobService {
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
             public void onAvailable(Network network) {
+                firstAvailableCount++;
                 System.out.println("Connection : onAvailable");
                 sendConnectivityBroadCast();
             }
@@ -107,8 +106,6 @@ public class MediaStoreJobService extends JobService {
                 System.out.println("Connection : onLost");
                 sendConnectivityBroadCast();
             }
-
-
         };
         connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), networkCallback);
     }
@@ -140,6 +137,9 @@ public class MediaStoreJobService extends JobService {
     }
 
     private void sendConnectivityBroadCast() {
+        if (firstAvailableCount <= 2)
+            return;
+
         Intent intent = new Intent("android.net.conn.CONNECTIVITY_CHANGE_V24");
         intent.setClass(this, MyBroadCastReceiver.class);
         sendBroadcast(intent);

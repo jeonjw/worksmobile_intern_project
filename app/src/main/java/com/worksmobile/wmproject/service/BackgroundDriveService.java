@@ -13,28 +13,22 @@ import android.os.IBinder;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
-import android.text.TextUtils;
-import android.util.Log;
 
+import com.google.gson.Gson;
 import com.worksmobile.wmproject.ContractDB;
 import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
-import com.worksmobile.wmproject.StateCallback;
-
-import net.openid.appauth.AuthState;
-import net.openid.appauth.AuthorizationException;
-import net.openid.appauth.AuthorizationService;
-import net.openid.appauth.TokenResponse;
-
-import org.json.JSONException;
+import com.worksmobile.wmproject.callback.StateCallback;
+import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.retrofit_object.Token;
 
 import java.io.File;
 
 
 public class BackgroundDriveService extends Service {
 
-    private AuthState authState;
+    private Token token;
 
     public static final String TEST_FOLDER_ID = "0BzHAMvdMNu8aSFNBVFdhWldFM2c";
     private DriveHelper mDriveHelper;
@@ -48,16 +42,32 @@ public class BackgroundDriveService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        authState = restoreAuthState();
+        token = restoreAuthState();
         dbHelper = new DBHelpler(this);
 
         if (mDriveHelper == null)
-            mDriveHelper = new DriveHelper(getString(R.string.client_id), getString(R.string.client_secret));
+            mDriveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null);
 
-        if (authState != null) {
-            if (authState.getNeedsTokenRefresh())
-                refreshToken();
-            mDriveHelper.setAccessToken(authState.getAccessToken());
+        System.out.println("TOKEN : " + token.getAccessToken());
+        mDriveHelper.setToken(token);
+
+        if (token != null) {
+            if (token.getNeedsTokenRefresh()) {
+                System.out.println("TOKEN 만료");
+                mDriveHelper.refreshToken(new TokenCallback() {
+                    @Override
+                    public void onSuccess(Token token) {
+//                        printDBList();
+//                        createNotification();
+//                        uploadToDrive();
+                    }
+
+                    @Override
+                    public void onFailure(String msg) {
+
+                    }
+                });
+            }
         }
 
 
@@ -89,45 +99,29 @@ public class BackgroundDriveService extends Service {
         super.onDestroy();
     }
 
-    private void persistAuthState(@NonNull AuthState authState) {
-        getSharedPreferences("AuthStatePreference", Context.MODE_PRIVATE).edit()
-                .putString("AUTH_STATE", authState.toJsonString())
+    private void persistAuthState(@NonNull Token token) {
+        Gson gson = new Gson();
+        String tokenJson = gson.toJson(token);
+
+        getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE).edit()
+                .putString("TOKEN_STATE", tokenJson)
                 .apply();
     }
 
     @Nullable
-    private AuthState restoreAuthState() {
-        String jsonString = getSharedPreferences("AuthStatePreference", Context.MODE_PRIVATE)
-                .getString("AUTH_STATE", null);
-        if (!TextUtils.isEmpty(jsonString)) {
-            try {
-                return AuthState.fromJson(jsonString);
-            } catch (JSONException jsonException) {
-                // should never happen
-            }
-        }
-        return null;
+    private Token restoreAuthState() {
+        Gson gson = new Gson();
+        String jsonString = getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE)
+                .getString("TOKEN_STATE", null);
+
+        System.out.println("JSON STRING" + jsonString);
+
+        return gson.fromJson(jsonString, Token.class);
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    private void refreshToken() {
-        AuthorizationService service = new AuthorizationService(this);
-        service.performTokenRequest(authState.createTokenRefreshRequest(), (tokenResponse, exception) -> {
-            if (exception != null) {
-                Log.w("TAG", "Token Exchange failed", exception);
-            } else {
-                if (tokenResponse != null) {
-                    authState.update(tokenResponse, null);
-                    persistAuthState(authState);
-                    Log.i("TAG", String.format("Token Refresh Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
-                }
-            }
-        });
-        service.dispose();
     }
 
     private void createNotification() {
@@ -176,7 +170,7 @@ public class BackgroundDriveService extends Service {
     }
 
     private void createUploadRequest(String imageLocation) {
-        mDriveHelper.uploadFile(new File(imageLocation), TEST_FOLDER_ID, new StateCallback() {
+        mDriveHelper.uploadFile(new File(imageLocation), new StateCallback() {
             @Override
             public void onSuccess() {
                 System.out.println("업로드 성공");
