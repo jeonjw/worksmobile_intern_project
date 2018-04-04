@@ -116,17 +116,14 @@ public class BackgroundDriveService extends Service {
 
     private void refreshToken() {
         AuthorizationService service = new AuthorizationService(this);
-        service.performTokenRequest(authState.createTokenRefreshRequest(), new AuthorizationService.TokenResponseCallback() {
-            @Override
-            public void onTokenRequestCompleted(@Nullable TokenResponse tokenResponse, @Nullable AuthorizationException exception) {
-                if (exception != null) {
-                    Log.w("TAG", "Token Exchange failed", exception);
-                } else {
-                    if (tokenResponse != null) {
-                        authState.update(tokenResponse, null);
-                        persistAuthState(authState);
-                        Log.i("TAG", String.format("Token Refresh Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
-                    }
+        service.performTokenRequest(authState.createTokenRefreshRequest(), (tokenResponse, exception) -> {
+            if (exception != null) {
+                Log.w("TAG", "Token Exchange failed", exception);
+            } else {
+                if (tokenResponse != null) {
+                    authState.update(tokenResponse, null);
+                    persistAuthState(authState);
+                    Log.i("TAG", String.format("Token Refresh Response [ Access Token: %s, ID Token: %s ]", tokenResponse.accessToken, tokenResponse.idToken));
                 }
             }
         });
@@ -158,7 +155,6 @@ public class BackgroundDriveService extends Service {
 
             if (notificationManager != null) {
                 notificationManager.notify(0, mBuilder.build());
-
             }
         }
     }
@@ -177,7 +173,6 @@ public class BackgroundDriveService extends Service {
             }
         }
         stopSelf();
-
     }
 
     private void createUploadRequest(String imageLocation) {

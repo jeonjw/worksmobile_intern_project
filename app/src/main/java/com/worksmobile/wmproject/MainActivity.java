@@ -6,10 +6,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.app.job.JobInfo;
-import android.app.job.JobScheduler;
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -23,7 +20,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.worksmobile.wmproject.service.ConnectivityJobService;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
@@ -171,30 +167,11 @@ public class MainActivity extends AppCompatActivity {
 
     private void setJobSchedule() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            JobInfo mediaStoreJob = new JobInfo.Builder(101, new ComponentName(this, MediaStoreJobService.class))
-                    .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                    .setOverrideDeadline(3000)
-                    .setPersisted(true)
-                    .build();
-
-            JobInfo connectivityJob = new JobInfo.Builder(102, new ComponentName(this, ConnectivityJobService.class))
-                    .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
-                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
-                    .setPersisted(true)
-                    .build();
-
-            JobScheduler jobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
-            if (jobScheduler != null) {
-                jobScheduler.schedule(mediaStoreJob);
-                jobScheduler.schedule(connectivityJob);
-            }
+            MediaStoreJobService.scheduleJob(this);
         } else {
             final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
             startService(intent);
         }
-
-
     }
 
 

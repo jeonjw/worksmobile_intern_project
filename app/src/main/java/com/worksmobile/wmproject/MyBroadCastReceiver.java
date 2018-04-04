@@ -19,15 +19,11 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
         String actionName = intent.getAction();
         System.out.println("ACTION : " + actionName);
         Toast.makeText(context, "받은 액션 : " + actionName, Toast.LENGTH_SHORT).show();
-        Intent serviceIntent = new Intent(context, BackgroundDriveService.class);
-        if (manager == null)
-            manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 
 
         switch (actionName) {
             case "com.worksmobile.wm_project.NEW_MEDIA":
-                int networkType = manager.getActiveNetworkInfo().getType();
-                if (networkType == ConnectivityManager.TYPE_WIFI || networkType == ConnectivityManager.TYPE_WIMAX)
+                if (isUnMeteredNetWork(context))
                     startUploadService(context);
                 break;
             case "android.intent.action.BOOT_COMPLETED":
@@ -35,21 +31,23 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                 break;
 
             case "android.net.conn.CONNECTIVITY_CHANGE":
-                System.out.println("ConnectivityChange");
-                break;
             case "android.net.conn.CONNECTIVITY_CHANGE_V24":
-                System.out.println("ConnectivityChange_V24");
-                if (manager == null)
-                    manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-                NetworkInfo networkInfo = manager.getActiveNetworkInfo();
-
-
-                if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-                    if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)
-                        startUploadService(context);
-                }
+                if (isUnMeteredNetWork(context))
+                    startUploadService(context);
                 break;
         }
+    }
+
+    private boolean isUnMeteredNetWork(Context context) {
+        if (manager == null)
+            manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+
+        if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
+            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)
+                return true;
+        }
+        return false;
     }
 
     private void startUploadService(Context context) {
