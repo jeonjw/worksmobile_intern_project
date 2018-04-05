@@ -28,7 +28,8 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                     startUploadService(context);
                 break;
             case "android.intent.action.BOOT_COMPLETED":
-                context.startService(new Intent(context, MediaStoreService.class));
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP)
+                    context.startService(new Intent(context, MediaStoreService.class));
                 break;
 
             case "android.net.conn.CONNECTIVITY_CHANGE":
@@ -56,7 +57,7 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
     }
 
     private void startUploadService(Context context) {
-        Intent serviceIntent = new Intent(context, BackgroundDriveService.class);
+        serviceIntent = new Intent(context, BackgroundDriveService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             context.startForegroundService(serviceIntent);
         else

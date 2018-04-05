@@ -1,15 +1,19 @@
 package com.worksmobile.wmproject;
 
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
-import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.callback.UploadCallback;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import java.io.File;
+import java.io.IOException;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -29,8 +33,6 @@ public class DriveHelper {
     public String clientId;
     public String clientSecret;
     private Token token;
-
-
     private DriveApi mDriveApi;
 
     public DriveHelper(String clientId, String clientSecret) {
@@ -113,7 +115,7 @@ public class DriveHelper {
     }
 
 
-    public void uploadFile(File srcFile, final StateCallback callback) {
+    public void uploadFile(File srcFile, String databaseID, final UploadCallback callback) {
         if (!srcFile.exists())
             return;
 
@@ -130,11 +132,11 @@ public class DriveHelper {
                 String message = DriveUtils.printResponse("uploadFile", response);
                 if (message == null) {
                     if (callback != null) {
-                        callback.onSuccess();
+                        callback.onSuccess(databaseID);
                     }
                 } else {
                     if (callback != null) {
-                        callback.onFailure(message);
+                        callback.onFailure(message, databaseID);
                     }
                 }
             }
@@ -143,11 +145,54 @@ public class DriveHelper {
             public void onFailure(@NonNull Call<UploadResult> call, @NonNull Throwable t) {
                 String message = DriveUtils.printFailure("uploadFile", t);
                 if (callback != null) {
-                    callback.onFailure(message);
+                    callback.onFailure(message, databaseID);
                 }
             }
         });
     }
+
+    public void uploadFileSync(Cursor uploadCursor, SQLiteDatabase db, final UploadCallback callback) {
+
+        while (uploadCursor.moveToNext()) {
+            String databaseID = uploadCursor.getString(0);
+            String imageLocation = uploadCursor.getString(1);
+            File srcFile = new File(imageLocation);
+
+            if (!srcFile.exists())
+                continue;
+
+            ContentValues values = new ContentValues();
+            values.put("STATUS", "UPLOADING");
+
+            db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
+
+            MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
+            String content = "{\"name\": \"" + srcFile.getName() + "\"}";
+            MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
+            String mimeType = getMimeType(srcFile);
+            MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
+
+            Call<UploadResult> call = mDriveApi.uploadFile(getAuthToken(), metaPart, dataPart);
+            System.out.println("요청 전");
+            new Thread(() -> {
+                try {
+                    Response<UploadResult> response = call.execute();
+                    System.out.println("요청");
+                    String message = DriveUtils.printResponse("uploadFile", response);
+                    if (message == null) {
+                        if (callback != null)
+                            callback.onSuccess(databaseID);
+                    } else {
+                        if (callback != null)
+                            callback.onFailure(message, databaseID);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }).start();
+        }
+    }
+
 
     private String getAuthToken() {
         checkAccessToken();

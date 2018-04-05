@@ -97,7 +97,7 @@ public class MediaStoreJobService extends JobService {
             @Override
             public void onAvailable(Network network) {
                 firstAvailableCount++;
-                System.out.println("Connection : onAvailable");
+                System.out.println("Connection : onAvailable " + firstAvailableCount);
                 sendConnectivityBroadCast();
             }
 

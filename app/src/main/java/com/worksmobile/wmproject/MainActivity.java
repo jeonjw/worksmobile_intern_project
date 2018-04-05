@@ -30,10 +30,9 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int READ_EXTERNAL_STORAGE_PERMISSION = 777;
     private static final String SHARED_PREFERENCES_NAME = "TokenStatePreference";
-    private static final String AUTH_STATE = "AUTH_STATE";
+    private static final String TOKEN_STATE = "TOKEN_STATE";
     private static final String USED_INTENT = "USED_INTENT";
     private static final String TAG = "MAIN_ACTIVITY";
-    private static final String SCOPE = "https://www.googleapis.com/auth/drive";
 
 
     public static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
@@ -68,16 +67,19 @@ public class MainActivity extends AppCompatActivity {
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationManager notificationManager = (android.app.NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
-            NotificationChannel notificationChannel = new NotificationChannel("WM", "project", NotificationManager.IMPORTANCE_HIGH);
+            NotificationChannel notificationChannel = new NotificationChannel("WM_PROJECT", "project1", NotificationManager.IMPORTANCE_DEFAULT);
             notificationChannel.setDescription("channel description");
-            notificationChannel.enableLights(true);
-            notificationChannel.enableVibration(true);
-            notificationChannel.setVibrationPattern(new long[]{100, 200, 100, 200});
+            notificationChannel.enableLights(false);
+            notificationChannel.enableVibration(false);
+            notificationChannel.setVibrationPattern(new long[]{0});
             notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE);
             if (notificationManager != null) {
                 notificationManager.createNotificationChannel(notificationChannel);
+//                notificationManager.deleteNotificationChannel("WM");
+//                notificationManager.deleteNotificationChannel("project");
             }
         }
+
 
         checkPermission();
     }
@@ -145,8 +147,8 @@ public class MainActivity extends AppCompatActivity {
         Gson gson = new Gson();
         String tokenJson = gson.toJson(token);
 
-        getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE).edit()
-                .putString("TOKEN_STATE", tokenJson)
+        getSharedPreferences(SHARED_PREFERENCES_NAME, Context.MODE_PRIVATE).edit()
+                .putString(TOKEN_STATE, tokenJson)
                 .apply();
     }
 
