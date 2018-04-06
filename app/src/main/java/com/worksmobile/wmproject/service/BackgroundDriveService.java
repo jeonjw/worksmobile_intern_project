@@ -25,22 +25,27 @@ import com.worksmobile.wmproject.callback.TokenCallback;
 import com.worksmobile.wmproject.callback.UploadCallback;
 import com.worksmobile.wmproject.retrofit_object.Token;
 
-import java.io.File;
 import java.util.Locale;
 
 
 public class BackgroundDriveService extends Service {
 
     public static final String NOTIFICATION_TITLE = "네이버 클라우드";
-    public static final String NOTIFICATION_UPLOAD_SUCCESS_MESSAGE = "1개의 파일이 안전하게 보관되었습니다.";
-    public static final String NOTIFICATION_UPLOAD_SUCCESS_MESSAGE_1 = "%d개의 파일이 안전하게 보관되었습니다.";
+    public static final String NOTIFICATION_UPLOAD_SUCCESS_MESSAGE = "%d개의 파일이 안전하게 보관되었습니다.";
+    public static final String NOTIFICATION_UPLOADING_MESSAGE = "파일을 올리고 있습니다 (%d/%d)";
+    public static final String NOTIFICATION_UPLOAD_TRY_MESSAGE = "%d개의 파일이 업로드 시도중";
+    private static final int PROGRESS_NOTIFICATION_ID = 100;
+    private static final int FINISH_NOTIFICATION_ID = 200;
     private DriveHelper driveHelper;
     private DBHelpler dbHelper;
     private Cursor uploadCursor;
     private NotificationCompat.Builder notificationBuilder;
     private NotificationManager notificationManager;
     private int currentProgress;
+    private int totalUploadCount;
     private PendingIntent pendingIntent;
+
+    private boolean isProgressNotificationRunning;
 
     @Override
     public void onCreate() {
@@ -50,13 +55,13 @@ public class BackgroundDriveService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Token token = restoreAuthState();
+        System.out.println("onStartCommand onStartCommand onStartCommand onStartCommand");
         dbHelper = new DBHelpler(this);
 
         if (driveHelper == null)
             driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null);
 
-        System.out.println("TOKEN : " + token.getAccessToken());
+        Token token = restoreAuthState();
         driveHelper.setToken(token);
 
         if (token != null) {
@@ -66,7 +71,7 @@ public class BackgroundDriveService extends Service {
                     public void onSuccess(Token token) {
                         persistAuthState(token);
                         printDBList();
-                        uploadCursor = findUploadList();
+                        findUploadList();
                         if (uploadCursor != null && uploadCursor.getCount() > 0) {
                             createNotification(uploadCursor.getCount());
                             createUploadRequest(uploadCursor);
@@ -80,14 +85,17 @@ public class BackgroundDriveService extends Service {
                 });
             } else {
                 printDBList();
-                uploadCursor = findUploadList();
+                findUploadList();
                 if (uploadCursor != null && uploadCursor.getCount() > 0) {
+                    totalUploadCount += uploadCursor.getCount();
                     createNotification(uploadCursor.getCount());
                     createUploadRequest(uploadCursor);
                 }
 
             }
         }
+
+        System.out.println("Total Count : " + totalUploadCount + "Cursor Count : " + uploadCursor.getCount());
 
         return START_NOT_STICKY;
     }
@@ -135,7 +143,12 @@ public class BackgroundDriveService extends Service {
     }
 
     private void createNotification(int progressMax) {
+        if (isProgressNotificationRunning) {
+            return;
+        }
+
         notificationManager = (android.app.NotificationManager) getSystemService(Service.NOTIFICATION_SERVICE);
+        String tryMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOAD_TRY_MESSAGE, progressMax);
 
         Intent intent = new Intent(this, MainActivity.class);
         pendingIntent = PendingIntent.getActivity(this, 101, intent, PendingIntent.FLAG_UPDATE_CURRENT);
@@ -145,115 +158,86 @@ public class BackgroundDriveService extends Service {
                     new NotificationCompat.Builder(this, "WM_PROJECT")
                             .setVibrate(new long[]{0})
                             .setContentTitle(NOTIFICATION_TITLE)
-                            .setContentText(NOTIFICATION_UPLOAD_SUCCESS_MESSAGE)
+                            .setContentText(tryMessage)
                             .setProgress(progressMax, 0, false)
                             .setContentIntent(pendingIntent)
                             .setSmallIcon(R.drawable.ic_launcher_foreground);
 
-            startForeground(100, notificationBuilder.build());
+            startForeground(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
+            isProgressNotificationRunning = true;
         } else {
             notificationBuilder =
                     new NotificationCompat.Builder(this)
                             .setSmallIcon(R.drawable.android)
                             .setContentTitle(NOTIFICATION_TITLE)
-                            .setContentText(NOTIFICATION_UPLOAD_SUCCESS_MESSAGE)
+                            .setContentText(tryMessage)
                             .setDefaults(Notification.DEFAULT_ALL)
                             .setProgress(progressMax, 0, false)
                             .setContentIntent(pendingIntent)
                             .setPriority(Notification.PRIORITY_HIGH);
 
-            notificationManager.notify(100, notificationBuilder.build());
+            notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
+            isProgressNotificationRunning = true;
         }
 
     }
 
-    private Cursor findUploadList() {
+    private void findUploadList() {
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        return db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null);
+        uploadCursor = db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null);
+
+        while (uploadCursor.moveToNext()) {
+            String databaseID = uploadCursor.getString(0);
+            ContentValues values = new ContentValues();
+            values.put("STATUS", "UPLOADING");
+            db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
+        }
     }
 
     private void sendUploadFinishNotification(int successCount) {
-        String successMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOAD_SUCCESS_MESSAGE_1, successCount);
+        String successMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOAD_SUCCESS_MESSAGE, successCount);
         notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
                 .setContentTitle(NOTIFICATION_TITLE)
                 .setContentText(successMessage)
                 .setContentIntent(pendingIntent)
                 .setSmallIcon(R.drawable.ic_launcher_foreground);
-        notificationManager.notify(200, notificationBuilder.build());
+        notificationManager.notify(FINISH_NOTIFICATION_ID, notificationBuilder.build());
     }
 
     private void createUploadRequest(Cursor uploadCursor) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 
-//        driveHelper.uploadFileSync(uploadCursor, db, new UploadCallback() {
-//
-//            @Override
-//            public void onSuccess(String databaseID) {
-//                currentProgress++;
-//
-//                ContentValues values = new ContentValues();
-//                values.put("STATUS", "UPLOADED");
-//
-//                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-//                notificationBuilder.setProgress(uploadCursor.getCount(), currentProgress, false);
-//                notificationBuilder.setContentText("ProgressBar : " + currentProgress);
-//                notificationManager.notify(100, notificationBuilder.build());
-//
-//                System.out.println("요청 완료");
-//
-//                if (currentProgress == uploadCursor.getCount()) {
-//                    sendUploadFinishNotification(currentProgress);
-//                    stopSelf();
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(String msg, String databaseID) {
-//                ContentValues values = new ContentValues();
-//                values.put("STATUS", "UPLOAD");
-//                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-//                System.out.println("업로드 실패");
-//            }
-//        });
+        driveHelper.uploadFileSync(uploadCursor, new UploadCallback() {
 
+            @Override
+            public void onSuccess(String databaseID) {
+                currentProgress++;
 
-        while (uploadCursor.moveToNext()) {
-            String databaseID = uploadCursor.getString(0);
-            String imageLocation = uploadCursor.getString(1);
-            ContentValues values = new ContentValues();
-            values.put("STATUS", "UPLOADING");
-            db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
+                ContentValues values = new ContentValues();
+                values.put("STATUS", "UPLOADED");
+                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
 
-            driveHelper.uploadFile(new File(imageLocation), databaseID, new UploadCallback() {
-                @Override
-                public void onSuccess(String databaseID) {
-                    currentProgress++;
+                String tryMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOADING_MESSAGE, currentProgress, totalUploadCount);
+                notificationBuilder.setProgress(totalUploadCount, currentProgress, false);
+                notificationBuilder.setContentText(tryMessage);
+                notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
 
-                    ContentValues values = new ContentValues();
-                    values.put("STATUS", "UPLOADED");
+                System.out.println("요청 완료");
 
-                    db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-                    notificationBuilder.setProgress(uploadCursor.getCount(), currentProgress, false);
-                    notificationBuilder.setContentText("ProgressBar : " + currentProgress);
-                    notificationManager.notify(100, notificationBuilder.build());
-
-                    System.out.println("요청 완료");
-
-                    if (currentProgress == uploadCursor.getCount()) {
-                        sendUploadFinishNotification(currentProgress);
-                        stopSelf();
-                    }
+                if (currentProgress == totalUploadCount) {
+                    sendUploadFinishNotification(currentProgress);
+                    stopSelf();
                 }
+            }
 
-                @Override
-                public void onFailure(String msg, String databaseID) {
-                    ContentValues values = new ContentValues();
-                    values.put("STATUS", "UPLOAD");
-                    db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-                    System.out.println("업로드 실패");
-                }
-            });
-        }
+            @Override
+            public void onFailure(String msg, String databaseID) {
+                ContentValues values = new ContentValues();
+                values.put("STATUS", "UPLOAD");
+                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
+                System.out.println("업로드 실패");
+            }
+        });
     }
 
 }

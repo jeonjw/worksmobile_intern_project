@@ -18,12 +18,16 @@ public class MediaStoreObserver extends ContentObserver {
     private Context context;
     private Cursor countCursor;
     private DBHelpler dbHelper = null;
+    private Handler handler;
+    private static final int CALLBACK_PRESENT_INTEGER = 0;
+    private Runnable sendBroakdCastTask;
 
 
     public MediaStoreObserver(Handler handler, Context context) {
         super(handler);
         this.context = context;
 
+        this.handler = handler;
         initDB();
 
         countCursor = context.getContentResolver().query(uri,
@@ -43,7 +47,6 @@ public class MediaStoreObserver extends ContentObserver {
         super.onChange(selfChange);
 
         int previousCount = storageCount;
-
         countCursor = context.getContentResolver().query(uri,
                 new String[]{"count(*) AS count"},
                 null,
@@ -58,9 +61,14 @@ public class MediaStoreObserver extends ContentObserver {
         if (storageCount > previousCount) {
             System.out.println("사진추가");
             wirteToDatabase(getLastPictureLocation());
-            sendDriveBroadCast();
-        } else {
-            System.out.println("사진 추가는 아님");
+
+            if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && sendBroakdCastTask != null) {
+                handler.removeCallbacks(sendBroakdCastTask);
+            }
+
+            sendBroakdCastTask = sendDriveBroadCast();
+            handler.postDelayed(sendBroakdCastTask, 5000);
+
         }
 
         System.out.println(" Observer : 스토리지 갯수 : " + storageCount);
@@ -71,11 +79,11 @@ public class MediaStoreObserver extends ContentObserver {
         System.out.println("INIT DB");
         dbHelper = new DBHelpler(context);
 
-//        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
 //        db.execSQL("DROP TABLE IF EXISTS " + "UPLOAD_TABLE");
 //        db.execSQL(ContractDB.SQL_CREATE_TBL);
-//        db.execSQL(ContractDB.SQL_DELETE);
-//        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
+        db.execSQL(ContractDB.SQL_DELETE);
+        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
 
     }
 
@@ -88,10 +96,13 @@ public class MediaStoreObserver extends ContentObserver {
         db.insert(ContractDB.TBL_CONTACT, null, values);
     }
 
-    private void sendDriveBroadCast() {
-        Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
-        intent.setClass(context, MyBroadCastReceiver.class);
-        context.sendBroadcast(intent);
+    private Runnable sendDriveBroadCast() {
+        return () -> {
+            handler.sendEmptyMessage(CALLBACK_PRESENT_INTEGER);
+            Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
+            intent.setClass(context, MyBroadCastReceiver.class);
+            context.sendBroadcast(intent);
+        };
     }
 
 

@@ -1,8 +1,6 @@
 package com.worksmobile.wmproject;
 
-import android.content.ContentValues;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
@@ -14,6 +12,8 @@ import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -33,7 +33,7 @@ public class DriveHelper {
     public String clientId;
     public String clientSecret;
     private Token token;
-    private DriveApi mDriveApi;
+    private DriveApi driveApi;
 
     public DriveHelper(String clientId, String clientSecret) {
 
@@ -41,7 +41,7 @@ public class DriveHelper {
                 .baseUrl(BASE_URL_API)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-        mDriveApi = retrofit.create(DriveApi.class);
+        driveApi = retrofit.create(DriveApi.class);
 
         this.clientId = clientId;
         this.clientSecret = clientSecret;
@@ -53,7 +53,7 @@ public class DriveHelper {
 
     public void getToken(final TokenCallback callback, String mAuthCode) {
 
-        Call<Token> call = mDriveApi.getToken(mAuthCode, clientId,
+        Call<Token> call = driveApi.getToken(mAuthCode, clientId,
                 clientSecret, REDIRECT_URI, "authorization_code");
         call.enqueue(new Callback<Token>() {
             @Override
@@ -85,7 +85,7 @@ public class DriveHelper {
 
     public void refreshToken(final TokenCallback callback) {
         checkRefreshToken();
-        Call<Token> call = mDriveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
+        Call<Token> call = driveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
         call.enqueue(new Callback<Token>() {
             @Override
             public void onResponse(@NonNull Call<Token> call, @NonNull Response<Token> response) {
@@ -114,7 +114,6 @@ public class DriveHelper {
         });
     }
 
-
     public void uploadFile(File srcFile, String databaseID, final UploadCallback callback) {
         if (!srcFile.exists())
             return;
@@ -125,7 +124,7 @@ public class DriveHelper {
         String mimeType = getMimeType(srcFile);
         MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
 
-        Call<UploadResult> call = mDriveApi.uploadFile(getAuthToken(), metaPart, dataPart);
+        Call<UploadResult> call = driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
         call.enqueue(new Callback<UploadResult>() {
             @Override
             public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
@@ -151,33 +150,40 @@ public class DriveHelper {
         });
     }
 
-    public void uploadFileSync(Cursor uploadCursor, SQLiteDatabase db, final UploadCallback callback) {
+    public void uploadFileSync(Cursor uploadCursor, final UploadCallback callback) {
+        List<Call<UploadResult>> uploadCallList = new ArrayList<>();
+        List<String> databaseIDList = new ArrayList<>();
+        if (uploadCursor.moveToFirst()) {
+            do {
+                String databaseID = uploadCursor.getString(0);
+                String imageLocation = uploadCursor.getString(1);
+                File srcFile = new File(imageLocation);
 
-        while (uploadCursor.moveToNext()) {
-            String databaseID = uploadCursor.getString(0);
-            String imageLocation = uploadCursor.getString(1);
-            File srcFile = new File(imageLocation);
+                if (!srcFile.exists())
+                    continue;
 
-            if (!srcFile.exists())
-                continue;
+                MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
+                String content = "{\"name\": \"" + srcFile.getName() + "\"}";
+                MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
+                String mimeType = getMimeType(srcFile);
+                MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
 
-            ContentValues values = new ContentValues();
-            values.put("STATUS", "UPLOADING");
+                Call<UploadResult> call = driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
+                uploadCallList.add(call);
+                databaseIDList.add(databaseID);
+                System.out.println("요청 전");
+            } while (uploadCursor.moveToNext());
+        }
 
-            db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
+        new Thread(() -> {
+            for (int i = 0; i < uploadCallList.size(); i++) {
+                Call<UploadResult> call = uploadCallList.get(i);
+                String databaseID = databaseIDList.get(i);
 
-            MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
-            String content = "{\"name\": \"" + srcFile.getName() + "\"}";
-            MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
-            String mimeType = getMimeType(srcFile);
-            MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
-
-            Call<UploadResult> call = mDriveApi.uploadFile(getAuthToken(), metaPart, dataPart);
-            System.out.println("요청 전");
-            new Thread(() -> {
                 try {
+                    System.out.println("요청1");
                     Response<UploadResult> response = call.execute();
-                    System.out.println("요청");
+                    System.out.println("요청2");
                     String message = DriveUtils.printResponse("uploadFile", response);
                     if (message == null) {
                         if (callback != null)
@@ -188,13 +194,14 @@ public class DriveHelper {
                     }
                 } catch (IOException e) {
                     e.printStackTrace();
+                    if (callback != null)
+                        callback.onFailure(null, databaseID);
                 }
-            }).start();
-        }
+            }
+        }).start();
     }
 
-
-    private String getAuthToken() {
+    public String getAuthToken() {
         checkAccessToken();
         return String.format("Bearer %s", token.getAccessToken());
     }
@@ -210,7 +217,6 @@ public class DriveHelper {
             throw new IllegalStateException("Access token is null!");
         }
     }
-
 
     public String getExtension(File file) {
         return getExtension(file.getName());

@@ -1,10 +1,12 @@
 package com.worksmobile.wmproject;
 
 import android.util.Log;
-;
+
 import java.io.IOException;
 
 import retrofit2.Response;
+
+;
 
 public final class DriveUtils {
     private static final String TAG = "WM_Project";
@@ -13,8 +15,7 @@ public final class DriveUtils {
     }
 
     public static String printResponse(String msg, Response<?> response) {
-
-        Log.d(TAG, "onResponse " + response.toString());
+//        Log.d(TAG, "onResponse " + response.toString());
         if (response.isSuccessful()) {
             Log.e(TAG, "success " + response.body());
             return null;
