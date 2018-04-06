@@ -26,6 +26,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class DriveHelper {
 
+    private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String BASE_URL_ACCOUNT = "https://accounts.google.com";
     public static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
@@ -59,7 +60,7 @@ public class DriveHelper {
             @Override
             public void onResponse(@NonNull Call<Token> call, @NonNull Response<Token> response) {
                 String message = DriveUtils.printResponse("getToken", response);
-                if (message == null) {
+                if (message == SUCCESS) {
                     token = response.body();
                     token.setTokenTimeStamp(System.currentTimeMillis());
 
@@ -90,7 +91,7 @@ public class DriveHelper {
             @Override
             public void onResponse(@NonNull Call<Token> call, @NonNull Response<Token> response) {
                 String message = DriveUtils.printResponse("refreshToken", response);
-                if (message == null) {
+                if (message == SUCCESS) {
                     Token refreshTtoken = response.body();
                     token.setAccessToken(refreshTtoken.getAccessToken());
                     token.setTokenTimeStamp(System.currentTimeMillis());
@@ -129,7 +130,7 @@ public class DriveHelper {
             @Override
             public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
                 String message = DriveUtils.printResponse("uploadFile", response);
-                if (message == null) {
+                if (message == SUCCESS) {
                     if (callback != null) {
                         callback.onSuccess(databaseID);
                     }
@@ -148,6 +149,20 @@ public class DriveHelper {
                 }
             }
         });
+    }
+
+    public Call<UploadResult> createUploadCall(String imageLocation) {
+        File srcFile = new File(imageLocation);
+        if (!srcFile.exists())
+            return null;
+
+        MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
+        String content = "{\"name\": \"" + srcFile.getName() + "\"}";
+        MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
+        String mimeType = getMimeType(srcFile);
+        MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
+
+        return driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
     }
 
     public void uploadFileSync(Cursor uploadCursor, final UploadCallback callback) {
@@ -185,7 +200,7 @@ public class DriveHelper {
                     Response<UploadResult> response = call.execute();
                     System.out.println("요청2");
                     String message = DriveUtils.printResponse("uploadFile", response);
-                    if (message == null) {
+                    if (message == SUCCESS) {
                         if (callback != null)
                             callback.onSuccess(databaseID);
                     } else {

@@ -6,9 +6,9 @@ import java.io.IOException;
 
 import retrofit2.Response;
 
-;
-
 public final class DriveUtils {
+
+    private static final String SUCCESS = "SUCCESS";
     private static final String TAG = "WM_Project";
 
     private DriveUtils() {
@@ -18,7 +18,7 @@ public final class DriveUtils {
 //        Log.d(TAG, "onResponse " + response.toString());
         if (response.isSuccessful()) {
             Log.e(TAG, "success " + response.body());
-            return null;
+            return SUCCESS;
         } else {
             String errorMessage = null;
             try {
