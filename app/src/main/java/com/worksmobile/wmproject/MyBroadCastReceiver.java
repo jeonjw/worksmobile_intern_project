@@ -37,8 +37,9 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                 if (isUnMeteredNetWork(context))
                     startUploadService(context);
                 else { //와이파이 끊길 시 업로드 서비스 중단.
-                    if (serviceIntent != null)
+                    if (serviceIntent != null) {
                         context.stopService(serviceIntent);
+                    }
                 }
                 break;
         }

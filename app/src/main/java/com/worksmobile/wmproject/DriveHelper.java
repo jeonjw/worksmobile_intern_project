@@ -1,5 +1,6 @@
 package com.worksmobile.wmproject;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
@@ -17,6 +18,7 @@ import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
+import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -36,12 +38,14 @@ public class DriveHelper {
     private Token token;
     private DriveApi driveApi;
 
-    public DriveHelper(String clientId, String clientSecret) {
+    public DriveHelper(String clientId, String clientSecret,Context context) {
+
 
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL_API)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+
         driveApi = retrofit.create(DriveApi.class);
 
         this.clientId = clientId;

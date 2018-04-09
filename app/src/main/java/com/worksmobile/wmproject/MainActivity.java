@@ -126,7 +126,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestToken(String code) {
-        DriveHelper driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null);
+        DriveHelper driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null,this);
         driveHelper.getToken(new TokenCallback() {
             @Override
             public void onSuccess(Token token) {

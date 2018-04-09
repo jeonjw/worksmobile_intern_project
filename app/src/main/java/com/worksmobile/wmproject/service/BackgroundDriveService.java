@@ -9,6 +9,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -16,6 +19,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 
 import com.google.gson.Gson;
@@ -24,6 +28,7 @@ import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.DriveUtils;
 import com.worksmobile.wmproject.MainActivity;
+import com.worksmobile.wmproject.MainThreadHandler;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.TokenCallback;
 import com.worksmobile.wmproject.retrofit_object.Token;
@@ -46,6 +51,10 @@ public class BackgroundDriveService extends Service {
     private static final int PROGRESS_NOTIFICATION_ID = 100;
     private static final int FINISH_NOTIFICATION_ID = 200;
     private static final int UPLOAD_SUCCESS = 777;
+    private static final int QUERY_FINISH = 778;
+
+    private int firstAvailableCount;
+
     private DriveHelper driveHelper;
     private DBHelpler dbHelper;
     private Cursor uploadCursor;
@@ -54,17 +63,76 @@ public class BackgroundDriveService extends Service {
     private int currentProgress;
     private int totalUploadCount;
     private PendingIntent pendingIntent;
-
     private boolean isProgressNotificationRunning;
-    private UploadHandlerThread uploadHandlerThread;
-
-    private Handler mainThreadHandler;
-
+    private UploadHandlerThread handlerThread;
+    private Handler mainThreadHandler = new MainThreadHandler(this);
 
     @Override
     public void onCreate() {
         super.onCreate();
         System.out.println("BackGround SERVICE CREATE");
+        handlerThread = new UploadHandlerThread("UploadHandlerThread");
+        handlerThread.start();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            tempTest();
+        }
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    public void tempTest() {
+        ConnectivityManager.NetworkCallback networkCallback;
+        ConnectivityManager connectivityManager;
+
+        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                System.out.println("UPLOAD SERVICE onAvailable ");
+                firstAvailableCount++;
+                if (firstAvailableCount > 2)
+                    handlerThread.quit();
+            }
+
+            @Override
+            public void onLost(Network network) {
+                System.out.println("UPLOAD SERVICE onLost ");
+
+                System.out.println("QUIT");
+                if(handlerThread != null){
+                    handlerThread.quit();
+                    handlerThread.interrupt();
+                }
+
+            }
+        };
+        connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), networkCallback);
+    }
+
+    public void handleMessage(Message msg) {
+        switch (msg.what) {
+            case UPLOAD_SUCCESS:
+                System.out.println("요청완료");
+                currentProgress++;
+
+                String tryMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOADING_MESSAGE, currentProgress, totalUploadCount);
+                notificationBuilder.setProgress(totalUploadCount, currentProgress, false);
+                notificationBuilder.setContentText(tryMessage);
+                notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
+
+                if (currentProgress == totalUploadCount) {
+                    sendUploadFinishNotification(currentProgress);
+                    stopSelf();
+                }
+                break;
+            case QUERY_FINISH:
+                if (uploadCursor != null && uploadCursor.getCount() > 0) {
+                    totalUploadCount += uploadCursor.getCount();
+                    createNotification(uploadCursor.getCount());
+                    createUploadRequest(uploadCursor);
+                }
+                break;
+        }
     }
 
     @Override
@@ -73,7 +141,7 @@ public class BackgroundDriveService extends Service {
         dbHelper = new DBHelpler(this);
 
         if (driveHelper == null)
-            driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null);
+            driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null, this);
 
         Token token = restoreAuthState();
         driveHelper.setToken(token);
@@ -85,11 +153,7 @@ public class BackgroundDriveService extends Service {
                     public void onSuccess(Token token) {
                         persistAuthState(token);
                         printDBList();
-                        findUploadList();
-                        if (uploadCursor != null && uploadCursor.getCount() > 0) {
-                            createNotification(uploadCursor.getCount());
-                            createUploadRequest(uploadCursor);
-                        }
+                        handlerThread.findUploadList();
                     }
 
                     @Override
@@ -99,18 +163,9 @@ public class BackgroundDriveService extends Service {
                 });
             } else {
                 printDBList();
-                findUploadList();
-                if (uploadCursor != null && uploadCursor.getCount() > 0) {
-                    totalUploadCount += uploadCursor.getCount();
-                    createNotification(uploadCursor.getCount());
-                    createUploadRequest(uploadCursor);
-                }
-
+                handlerThread.findUploadList();
             }
         }
-
-//        System.out.println("Total Count : " + totalUploadCount + "Cursor Count : " + uploadCursor.getCount());
-
         return START_NOT_STICKY;
     }
 
@@ -127,7 +182,9 @@ public class BackgroundDriveService extends Service {
 
     @Override
     public void onDestroy() {
+        printDBList();
         System.out.println("Upload Service Destroy");
+        handlerThread.quit();
         super.onDestroy();
     }
 
@@ -196,18 +253,6 @@ public class BackgroundDriveService extends Service {
 
     }
 
-    private void findUploadList() {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-        uploadCursor = db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null);
-
-        while (uploadCursor.moveToNext()) {
-            String databaseID = uploadCursor.getString(0);
-            ContentValues values = new ContentValues();
-            values.put("STATUS", "UPLOADING");
-            db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-        }
-    }
-
     private void sendUploadFinishNotification(int successCount) {
         String successMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOAD_SUCCESS_MESSAGE, successCount);
         notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
@@ -219,36 +264,18 @@ public class BackgroundDriveService extends Service {
     }
 
     private void createUploadRequest(Cursor uploadCursor) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-
-        uploadHandlerThread = new UploadHandlerThread("UploadHandlerThread");
-        uploadHandlerThread.start();
-
         if (uploadCursor.moveToFirst()) {
             do {
-                String databaseID = uploadCursor.getString(0);
+                int databaseID = uploadCursor.getInt(0);
                 String imageLocation = uploadCursor.getString(1);
-                Call<UploadResult> call = driveHelper.createUploadCall(imageLocation);
-
-                uploadHandlerThread.executeUpload(call);
-
+                handlerThread.executeUpload(databaseID, imageLocation);
             } while (uploadCursor.moveToNext());
         }
-
-        mainThreadHandler = new Handler(uploadHandlerThread.getLooper()) {
-            @Override
-            public void handleMessage(Message msg) {
-                switch (msg.what) {
-                    case UPLOAD_SUCCESS:
-
-                        break;
-                }
-            }
-        };
     }
 
     class UploadHandlerThread extends HandlerThread {
         private static final int UPLOAD = 700;
+        private static final int QUERY = 701;
         private Handler handler;
 
         public UploadHandlerThread(String name) {
@@ -263,60 +290,57 @@ public class BackgroundDriveService extends Service {
                 public void handleMessage(Message msg) {
                     switch (msg.what) {
                         case UPLOAD:
-                            Call<UploadResult> call = (Call<UploadResult>) msg.obj;
+                            String imageLocation = (String) msg.obj;
+                            String databaseID = String.valueOf(msg.arg1);
+                            Call<UploadResult> call = driveHelper.createUploadCall(imageLocation);
 
                             try {
+                                System.out.println("요청");
                                 Response<UploadResult> response = call.execute();
+
                                 String message = DriveUtils.printResponse("uploadFile", response);
-                                if (message == SUCCESS) { //성공
+                                if (message == SUCCESS) {
                                     mainThreadHandler.sendEmptyMessage(UPLOAD_SUCCESS);
+                                    ContentValues values = new ContentValues();
+                                    values.put("STATUS", "UPLOADED");
+                                    dbHelper.getWritableDatabase().update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
                                 }
                             } catch (IOException e) {
+
+                                ContentValues values = new ContentValues();
+                                values.put("STATUS", "UPLOAD");
+                                dbHelper.getWritableDatabase().update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
                                 e.printStackTrace();
                             }
+                            break;
+
+                        case QUERY:
+                            SQLiteDatabase db = dbHelper.getReadableDatabase();
+                            uploadCursor = db.rawQuery(ContractDB.SQL_SELECT_UPLOAD, null);
+
+                            while (uploadCursor.moveToNext()) {
+                                String dbID = uploadCursor.getString(0);
+                                ContentValues values = new ContentValues();
+                                values.put("STATUS", "UPLOADING");
+                                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{dbID});
+                            }
+                            mainThreadHandler.sendEmptyMessage(QUERY_FINISH);
+
                             break;
                     }
                 }
             };
         }
 
-        public void executeUpload(Call<UploadResult> call) {
-            Message message = handler.obtainMessage(UPLOAD, call);
+        public void executeUpload(int databaseID, String imageLocation) {
+            Message message = handler.obtainMessage(UPLOAD, imageLocation);
+            message.arg1 = databaseID;
             handler.sendMessage(message);
+        }
+
+        public void findUploadList() {
+            handler.sendEmptyMessage(QUERY);
         }
     }
 
 }
-
-
-//        driveHelper.uploadFileSync(uploadCursor, new UploadCallback() {
-//
-//            @Override
-//            public void onSuccess(String databaseID) {
-//                currentProgress++;
-//
-//                ContentValues values = new ContentValues();
-//                values.put("STATUS", "UPLOADED");
-//                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-//
-//                String tryMessage = String.format(Locale.KOREA, NOTIFICATION_UPLOADING_MESSAGE, currentProgress, totalUploadCount);
-//                notificationBuilder.setProgress(totalUploadCount, currentProgress, false);
-//                notificationBuilder.setContentText(tryMessage);
-//                notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
-//
-//                System.out.println("요청 완료");
-//
-//                if (currentProgress == totalUploadCount) {
-//                    sendUploadFinishNotification(currentProgress);
-//                    stopSelf();
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(String msg, String databaseID) {
-//                ContentValues values = new ContentValues();
-//                values.put("STATUS", "UPLOAD");
-//                db.update(ContractDB.TBL_CONTACT, values, "_id=?", new String[]{databaseID});
-//                System.out.println("업로드 실패");
-//            }
-//        });
