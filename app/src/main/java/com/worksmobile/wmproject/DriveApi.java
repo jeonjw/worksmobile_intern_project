@@ -7,6 +7,7 @@ import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.http.DELETE;
@@ -87,14 +88,22 @@ public interface DriveApi {
             @Path(value = "fileId") String fileId
     );
 
-    /**
-     * https://developers.google.com/drive/v3/web/multipart-upload
-     */
+//    /**
+//     * https://developers.google.com/drive/v3/web/multipart-upload
+//     */
+//    @POST("/upload/drive/v3/files?uploadType=multipart")
+//    @Multipart
+//    Call<UploadResult> uploadFile(
+//            @Header("Authorization") String authToken,
+//            @Part MultipartBody.Part metaPart,
+//            @Part MultipartBody.Part dataPart
+//    );
+
     @POST("/upload/drive/v3/files?uploadType=multipart")
     @Multipart
     Call<UploadResult> uploadFile(
             @Header("Authorization") String authToken,
-            @Part MultipartBody.Part metaPart,
+            @Part("description") RequestBody description,
             @Part MultipartBody.Part dataPart
     );
 

@@ -1,30 +1,29 @@
 package com.worksmobile.wmproject;
 
 import android.content.Context;
-import android.database.Cursor;
+import android.os.Handler;
+import android.os.Message;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import com.worksmobile.wmproject.callback.TokenCallback;
-import com.worksmobile.wmproject.callback.UploadCallback;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+
+import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_FINISH;
+
 
 public class DriveHelper {
 
@@ -37,10 +36,9 @@ public class DriveHelper {
     public String clientSecret;
     private Token token;
     private DriveApi driveApi;
+    private Context context;
 
-    public DriveHelper(String clientId, String clientSecret,Context context) {
-
-
+    public DriveHelper(String clientId, String clientSecret, Context context) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL_API)
                 .addConverterFactory(GsonConverterFactory.create())
@@ -50,6 +48,7 @@ public class DriveHelper {
 
         this.clientId = clientId;
         this.clientSecret = clientSecret;
+        this.context = context;
     }
 
     public void setToken(Token token) {
@@ -119,105 +118,47 @@ public class DriveHelper {
         });
     }
 
-    public void uploadFile(File srcFile, String databaseID, final UploadCallback callback) {
-        if (!srcFile.exists())
-            return;
+    public Call<UploadResult> createUploadCall(String imageLocation, Handler handler) {
 
-        MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
-        String content = "{\"name\": \"" + srcFile.getName() + "\"}";
-        MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
-        String mimeType = getMimeType(srcFile);
-        MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
-
-        Call<UploadResult> call = driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
-        call.enqueue(new Callback<UploadResult>() {
-            @Override
-            public void onResponse(@NonNull Call<UploadResult> call, @NonNull Response<UploadResult> response) {
-                String message = DriveUtils.printResponse("uploadFile", response);
-                if (message == SUCCESS) {
-                    if (callback != null) {
-                        callback.onSuccess(databaseID);
-                    }
-                } else {
-                    if (callback != null) {
-                        callback.onFailure(message, databaseID);
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<UploadResult> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("uploadFile", t);
-                if (callback != null) {
-                    callback.onFailure(message, databaseID);
-                }
-            }
-        });
-    }
-
-    public Call<UploadResult> createUploadCall(String imageLocation) {
         File srcFile = new File(imageLocation);
         if (!srcFile.exists())
             return null;
 
-        MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
         String content = "{\"name\": \"" + srcFile.getName() + "\"}";
-        MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
-        String mimeType = getMimeType(srcFile);
-        MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
 
-        return driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
+        RequestBody description = createPartFromString(content);
+        MultipartBody.Part dataPart = prepareFilePart("Photo", srcFile, handler);
+
+        return driveApi.uploadFile(getAuthToken(), description, dataPart);
     }
 
-    public void uploadFileSync(Cursor uploadCursor, final UploadCallback callback) {
-        List<Call<UploadResult>> uploadCallList = new ArrayList<>();
-        List<String> databaseIDList = new ArrayList<>();
-        if (uploadCursor.moveToFirst()) {
-            do {
-                String databaseID = uploadCursor.getString(0);
-                String imageLocation = uploadCursor.getString(1);
-                File srcFile = new File(imageLocation);
+    @NonNull
+    private RequestBody createPartFromString(String descriptionString) {
+        MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
+        return RequestBody.create(contentType, descriptionString);
+    }
 
-                if (!srcFile.exists())
-                    continue;
+    @NonNull
+    private MultipartBody.Part prepareFilePart(String partName, File file, Handler handler) {
+        String mimeType = getMimeType(file);
 
-                MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
-                String content = "{\"name\": \"" + srcFile.getName() + "\"}";
-                MultipartBody.Part metaPart = MultipartBody.Part.create(RequestBody.create(contentType, content));
-                String mimeType = getMimeType(srcFile);
-                MultipartBody.Part dataPart = MultipartBody.Part.create(RequestBody.create(MediaType.parse(mimeType), srcFile));
+        RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {
+            @Override
+            public void onUploadProgress(final int progressInPercent, final long totalBytes) {
+                System.out.println("Progress : " + progressInPercent);
+                if (progressInPercent == 100) {
+                    System.out.println("Upload has finished!");
+                    Message message = handler.obtainMessage(UPLOAD_FINISH, file.getAbsolutePath());
 
-                Call<UploadResult> call = driveApi.uploadFile(getAuthToken(), metaPart, dataPart);
-                uploadCallList.add(call);
-                databaseIDList.add(databaseID);
-                System.out.println("요청 전");
-            } while (uploadCursor.moveToNext());
-        }
-
-        new Thread(() -> {
-            for (int i = 0; i < uploadCallList.size(); i++) {
-                Call<UploadResult> call = uploadCallList.get(i);
-                String databaseID = databaseIDList.get(i);
-
-                try {
-                    System.out.println("요청1");
-                    Response<UploadResult> response = call.execute();
-                    System.out.println("요청2");
-                    String message = DriveUtils.printResponse("uploadFile", response);
-                    if (message == SUCCESS) {
-                        if (callback != null)
-                            callback.onSuccess(databaseID);
-                    } else {
-                        if (callback != null)
-                            callback.onFailure(message, databaseID);
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    if (callback != null)
-                        callback.onFailure(null, databaseID);
+                    handler.sendMessageAtFrontOfQueue(message);
+                } else {
+                    System.out.println(String.format("%d percent of %d MB", progressInPercent, totalBytes / (1024 * 1024)));
+                    System.out.println("TOTAL: " + totalBytes);
                 }
             }
-        }).start();
+        });
+
+        return MultipartBody.Part.createFormData(partName, file.getName(), requestFile);
     }
 
     public String getAuthToken() {

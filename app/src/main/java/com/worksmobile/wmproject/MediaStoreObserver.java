@@ -14,7 +14,7 @@ import android.provider.MediaStore;
 public class MediaStoreObserver extends ContentObserver {
 
     private int storageCount;
-    private static final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+    private static final Uri EXTERNAL_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
     private Context context;
     private Cursor countCursor;
     private DBHelpler dbHelper = null;
@@ -26,11 +26,10 @@ public class MediaStoreObserver extends ContentObserver {
     public MediaStoreObserver(Handler handler, Context context) {
         super(handler);
         this.context = context;
-
         this.handler = handler;
         initDB();
 
-        countCursor = context.getContentResolver().query(uri,
+        countCursor = context.getContentResolver().query(EXTERNAL_CONTENT_URI,
                 new String[]{"count(*) AS count"},
                 null,
                 null,
@@ -43,11 +42,11 @@ public class MediaStoreObserver extends ContentObserver {
     }
 
     @Override
-    public void onChange(boolean selfChange) {
-        super.onChange(selfChange);
+    public void onChange(boolean selfChange, Uri uri) {
+        super.onChange(selfChange, uri);
 
         int previousCount = storageCount;
-        countCursor = context.getContentResolver().query(uri,
+        countCursor = context.getContentResolver().query(EXTERNAL_CONTENT_URI,
                 new String[]{"count(*) AS count"},
                 null,
                 null,
@@ -59,8 +58,7 @@ public class MediaStoreObserver extends ContentObserver {
         }
 
         if (storageCount > previousCount) {
-            System.out.println("사진추가");
-            wirteToDatabase(getLastPictureLocation());
+            wirteToDatabase(getRealPathFromUri(uri));
 
             if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && sendBroakdCastTask != null) {
                 handler.removeCallbacks(sendBroakdCastTask);
@@ -87,10 +85,10 @@ public class MediaStoreObserver extends ContentObserver {
 
     }
 
-    private void wirteToDatabase(String location) {
+    private void wirteToDatabase(String uri) {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
         ContentValues values = new ContentValues();
-        values.put(ContractDB.COL_LOACTION, location);
+        values.put(ContractDB.COL_LOCATION, uri);
         values.put(ContractDB.COL_STATUS, "UPLOAD");
 
         db.insert(ContractDB.TBL_CONTACT, null, values);
@@ -105,26 +103,19 @@ public class MediaStoreObserver extends ContentObserver {
         };
     }
 
-
-    private String getLastPictureLocation() {
-        String[] projection = new String[]{
-                MediaStore.Images.ImageColumns._ID,
-                MediaStore.Images.ImageColumns.DATA,
-                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
-                MediaStore.Images.ImageColumns.DATE_TAKEN,
-                MediaStore.Images.ImageColumns.MIME_TYPE
-        };
-        final Cursor cursor = context.getContentResolver()
-                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
-                        null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
-
-        if (cursor != null && cursor.moveToFirst()) {
-            return cursor.getString(1);
+    public String getRealPathFromUri(Uri contentUri) {
+        Cursor cursor = null;
+        try {
+            String[] proj = {MediaStore.Images.Media.DATA};
+            cursor = context.getContentResolver().query(contentUri, proj, null, null, null);
+            int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
+            cursor.moveToFirst();
+            return cursor.getString(column_index);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
         }
-
-        cursor.close();
-
-        return null;
     }
 
 }

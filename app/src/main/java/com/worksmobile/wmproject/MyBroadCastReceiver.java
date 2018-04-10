@@ -6,13 +6,15 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Toast;
 
 import com.worksmobile.wmproject.service.BackgroundDriveService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
 public class MyBroadCastReceiver extends BroadcastReceiver {
-    private ConnectivityManager manager;
+    private ConnectivityManager connectivityManager;
     private Intent serviceIntent;
 
     @Override
@@ -37,18 +39,20 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                 if (isUnMeteredNetWork(context))
                     startUploadService(context);
                 else { //와이파이 끊길 시 업로드 서비스 중단.
-                    if (serviceIntent != null) {
-                        context.stopService(serviceIntent);
-                    }
+                    System.out.println("연결 끊김");
+//                    if (serviceIntent != null) {
+//                        new Handler().sendEmptyMessage(999);
+//                        context.stopService(serviceIntent);
+//                    }
                 }
                 break;
         }
     }
 
     private boolean isUnMeteredNetWork(Context context) {
-        if (manager == null)
-            manager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo networkInfo = manager.getActiveNetworkInfo();
+        if (connectivityManager == null)
+            connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 
         if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
             if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)

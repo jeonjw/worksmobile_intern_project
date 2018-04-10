@@ -2,6 +2,7 @@ package com.worksmobile.wmproject;
 
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 
 import com.worksmobile.wmproject.service.BackgroundDriveService;
@@ -20,7 +21,5 @@ public class MainThreadHandler extends Handler {
     public void handleMessage(Message msg) {
         BackgroundDriveService service = backgroundService.get();
         service.handleMessage(msg);
-
-
     }
 }
