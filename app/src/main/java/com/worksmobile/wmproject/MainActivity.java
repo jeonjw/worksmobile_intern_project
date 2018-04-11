@@ -34,14 +34,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String USED_INTENT = "USED_INTENT";
     private static final String TAG = "MAIN_ACTIVITY";
 
-
-    public static final String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
-            "client_id=764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com&" +
-            "response_type=code&" +
-            "access_type=offline&" +
-            "prompt=consent&" +
-            "scope=https://www.googleapis.com/auth/drive&" +
-            "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
+    private String AUTH_URL;
 
 
     @Override
@@ -49,19 +42,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
+                "client_id=" + getString(R.string.client_id) + "&" +
+                "response_type=code&" +
+                "access_type=offline&" +
+                "prompt=consent&" +
+                "scope=https://www.googleapis.com/auth/drive&" +
+                "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
+
         findViewById(R.id.start_service).setOnClickListener((View view) -> {
             Intent intent = new Intent(
                     Intent.ACTION_VIEW,
                     Uri.parse(AUTH_URL));
 
             startActivity(intent);
-        });
-
-        findViewById(R.id.stop_service).setOnClickListener(view -> {
-            Intent intent = new Intent();
-            intent.setAction("com.worksmobile.wm_project.NEW_MEDIA");
-            intent.setClass(MainActivity.this, MyBroadCastReceiver.class);
-            sendBroadcast(intent);
         });
 
 
@@ -126,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestToken(String code) {
-        DriveHelper driveHelper = new DriveHelper("764478534049-ju7pr2csrhjr88sf111p60tl57g4bp3p.apps.googleusercontent.com", null,this);
+        DriveHelper driveHelper = new DriveHelper(getString(R.string.client_id), null, this);
         driveHelper.getToken(new TokenCallback() {
             @Override
             public void onSuccess(Token token) {

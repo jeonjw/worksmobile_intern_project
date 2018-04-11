@@ -22,10 +22,11 @@ public class CustomRequestBody extends RequestBody {
     private ProgressListener listener;
     private MediaType mediaType;
     private Context context;
-    private ConnectivityManager connectivityManager;
 
     public interface ProgressListener {
         void onUploadProgress(int progressInPercent, long totalBytes);
+
+        void onUploadFail();
     }
 
     public CustomRequestBody(Context context, File file, String type, ProgressListener listener) {
@@ -33,7 +34,6 @@ public class CustomRequestBody extends RequestBody {
         this.file = file;
         this.mediaType = MediaType.parse(type);
         this.listener = listener;
-        connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     @Override
@@ -49,6 +49,7 @@ public class CustomRequestBody extends RequestBody {
     @Override
     public void writeTo(@NonNull BufferedSink sink) throws IOException {
         long totalBytes = file.length();
+        boolean uploadFail = false;
 
         try (FileInputStream in = new FileInputStream(file)) {
             // init variables
@@ -60,6 +61,7 @@ public class CustomRequestBody extends RequestBody {
             // go through the file and notify the UI
             while ((readBytes = in.read(buffer)) != -1) {
                 if (!isUnMeteredNetWork()) {
+                    uploadFail = true;
                     break;
                 }
                 int newfileUploadedInPercent = (int) ((uploadedBytes * 100) / totalBytes);
@@ -72,11 +74,15 @@ public class CustomRequestBody extends RequestBody {
                 sink.write(buffer, 0, readBytes);
             }
         }
-
-        listener.onUploadProgress(100, totalBytes);
+        if (uploadFail)
+            listener.onUploadFail();
+        else {
+            listener.onUploadProgress(100, totalBytes);
+        }
     }
 
     private boolean isUnMeteredNetWork() {
+        ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
             if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)

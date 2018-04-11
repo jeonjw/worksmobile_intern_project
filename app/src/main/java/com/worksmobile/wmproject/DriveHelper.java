@@ -22,14 +22,14 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_FINISH;
+import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_FAIL;
+import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_SUCCESS;
 
 
 public class DriveHelper {
 
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
-    private static final String BASE_URL_ACCOUNT = "https://accounts.google.com";
     public static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
 
     public String clientId;
@@ -56,7 +56,6 @@ public class DriveHelper {
     }
 
     public void getToken(final TokenCallback callback, String mAuthCode) {
-
         Call<Token> call = driveApi.getToken(mAuthCode, clientId,
                 clientSecret, REDIRECT_URI, "authorization_code");
         call.enqueue(new Callback<Token>() {
@@ -87,39 +86,12 @@ public class DriveHelper {
         });
     }
 
-    public void refreshToken(final TokenCallback callback) {
+    public Call<Token> createTokenRefeshCall() {
         checkRefreshToken();
-        Call<Token> call = driveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
-        call.enqueue(new Callback<Token>() {
-            @Override
-            public void onResponse(@NonNull Call<Token> call, @NonNull Response<Token> response) {
-                String message = DriveUtils.printResponse("refreshToken", response);
-                if (message == SUCCESS) {
-                    Token refreshTtoken = response.body();
-                    token.setAccessToken(refreshTtoken.getAccessToken());
-                    token.setTokenTimeStamp(System.currentTimeMillis());
-                    if (callback != null) {
-                        callback.onSuccess(token);
-                    }
-                } else {
-                    if (callback != null) {
-                        callback.onFailure(message);
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<Token> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("refreshToken", t);
-                if (callback != null) {
-                    callback.onFailure(message);
-                }
-            }
-        });
+        return driveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
     }
 
     public Call<UploadResult> createUploadCall(String imageLocation, Handler handler) {
-
         File srcFile = new File(imageLocation);
         if (!srcFile.exists())
             return null;
@@ -148,13 +120,18 @@ public class DriveHelper {
                 System.out.println("Progress : " + progressInPercent);
                 if (progressInPercent == 100) {
                     System.out.println("Upload has finished!");
-                    Message message = handler.obtainMessage(UPLOAD_FINISH, file.getAbsolutePath());
+                    Message message = handler.obtainMessage(UPLOAD_SUCCESS, file.getAbsolutePath());
 
                     handler.sendMessageAtFrontOfQueue(message);
                 } else {
                     System.out.println(String.format("%d percent of %d MB", progressInPercent, totalBytes / (1024 * 1024)));
-                    System.out.println("TOTAL: " + totalBytes);
                 }
+            }
+
+            @Override
+            public void onUploadFail() {
+                Message message = handler.obtainMessage(UPLOAD_FAIL, file.getAbsolutePath());
+                handler.sendMessageAtFrontOfQueue(message);
             }
         });
 

@@ -17,7 +17,7 @@ public class MediaStoreObserver extends ContentObserver {
     private static final Uri EXTERNAL_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
     private Context context;
     private Cursor countCursor;
-    private DBHelpler dbHelper = null;
+    private DBHelpler dbHelper;
     private Handler handler;
     private static final int CALLBACK_PRESENT_INTEGER = 0;
     private Runnable sendBroakdCastTask;
@@ -77,11 +77,11 @@ public class MediaStoreObserver extends ContentObserver {
         System.out.println("INIT DB");
         dbHelper = new DBHelpler(context);
 
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
+//        SQLiteDatabase db = dbHelper.getWritableDatabase();
 //        db.execSQL("DROP TABLE IF EXISTS " + "UPLOAD_TABLE");
 //        db.execSQL(ContractDB.SQL_CREATE_TBL);
-        db.execSQL(ContractDB.SQL_DELETE);
-        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
+//        db.execSQL(ContractDB.SQL_DELETE);
+//        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
 
     }
 
@@ -92,14 +92,18 @@ public class MediaStoreObserver extends ContentObserver {
         values.put(ContractDB.COL_STATUS, "UPLOAD");
 
         db.insert(ContractDB.TBL_CONTACT, null, values);
+        db.close();
     }
 
     private Runnable sendDriveBroadCast() {
-        return () -> {
-            handler.sendEmptyMessage(CALLBACK_PRESENT_INTEGER);
-            Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
-            intent.setClass(context, MyBroadCastReceiver.class);
-            context.sendBroadcast(intent);
+        return new Runnable() {
+            @Override
+            public void run() {
+                handler.sendEmptyMessage(CALLBACK_PRESENT_INTEGER);
+                Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
+                intent.setClass(context, MyBroadCastReceiver.class);
+                context.sendBroadcast(intent);
+            }
         };
     }
 
