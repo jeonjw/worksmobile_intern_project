@@ -5,4 +5,6 @@
     <string name="notification_upload_fail_message">%d개의 파일을 업로드 실패했습니다.</string>
     <string name="notification_uploading_message">파일을 올리고 있습니다 (%d/%d)</string>
     <string name="notification_upload_try_message">%d개의 파일이 업로드 시도중</string>
+    <string name="drawer_start">MAIN</string>
+    <string name="drawer_end">ACTIVITYY</string>
 </resources>

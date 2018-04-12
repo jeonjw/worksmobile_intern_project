@@ -34,7 +34,7 @@ public class LoginActivity extends AppCompatActivity {
                 "response_type=code&" +
                 "access_type=offline&" +
                 "prompt=consent&" +
-                "scope=https://www.googleapis.com/auth/drive&" +
+                "scope=https://www.googleapis.com/auth/drivez+https://www.googleapis.com/auth/userinfo.profile&" +
                 "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
 
         if (restoreAuthState() != null) {
@@ -98,7 +98,6 @@ public class LoginActivity extends AppCompatActivity {
                     finish();
                 }
             }
-
             @Override
             public void onFailure(String msg) {
                 Log.e(TAG, msg);

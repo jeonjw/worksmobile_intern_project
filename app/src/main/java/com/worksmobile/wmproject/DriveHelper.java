@@ -7,7 +7,11 @@ import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
+import com.worksmobile.wmproject.callback.ListCallback;
+import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.retrofit_object.DriveFiles;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
@@ -30,10 +34,10 @@ public class DriveHelper {
 
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
-    public static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
+    private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
 
-    public String clientId;
-    public String clientSecret;
+    private String clientId;
+    private String clientSecret;
     private Token token;
     private DriveApi driveApi;
     private Context context;
@@ -168,5 +172,62 @@ public class DriveHelper {
         if (TextUtils.isEmpty(mimeType))
             return "*/*";
         return mimeType;
+    }
+
+    public void listFiles(String folderId, final ListCallback callback) {
+        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
+                "name", 1000, null, String.format("'%s' in parents", folderId) + " and trashed = false") ;
+        call.enqueue(new Callback<DriveFiles>() {
+            @Override
+            public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
+                System.out.println("TEST");
+                String message = DriveUtils.printResponse("listFiles", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(response.body().getFiles());
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
+                String message = DriveUtils.printFailure("listFiles", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
+    public void getFile(String fileId, final StateCallback callback) {
+        Call<DriveFile> call = driveApi.getFile(getAuthToken(), fileId);
+        call.enqueue(new Callback<DriveFile>() {
+            @Override
+            public void onResponse(Call<DriveFile> call, Response<DriveFile> response) {
+                String message = DriveUtils.printResponse("getFile", response);
+                if (message == null) {
+                    if (callback != null) {
+                        callback.onSuccess();
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<DriveFile> call, Throwable t) {
+                String message = DriveUtils.printFailure("getFile", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
     }
 }

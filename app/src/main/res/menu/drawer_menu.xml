@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/nav_photo"
+        android:title="사진" />
+    <item
+        android:id="@+id/nav_video"
+        android:title="동영상" />
+    <item
+        android:id="@+id/nav_document"
+        android:title="문서" />
+    <item
+        android:id="@+id/nav_folder"
+        android:title="폴더" />
+
+
+
+</menu>

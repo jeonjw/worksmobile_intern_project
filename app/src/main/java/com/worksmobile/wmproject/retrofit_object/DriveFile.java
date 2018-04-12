@@ -6,20 +6,38 @@ import java.util.Date;
 
 public class DriveFile {
 
-    @SerializedName("kind") private String kind;
-    @SerializedName("id") private String id;
-    @SerializedName("name") private String name;
-    @SerializedName("mimeType") private String mimeType;
-    @SerializedName("description") private String description;
-    @SerializedName("starred") private boolean starred;
-    @SerializedName("trashed") private boolean trashed;
-    @SerializedName("explicitlyTrashed") private boolean explicitlyTrashed;
-    @SerializedName("parents") private String[] parents;
-    @SerializedName("createdTime") private Date createdTime;
-    @SerializedName("modifiedTime") private Date modifiedTime;
-    @SerializedName("shared") private boolean shared;
-    @SerializedName("fileExtension") private String fileExtension;
-    @SerializedName("size") private long size;
+    @SerializedName("kind")
+    private String kind;
+    @SerializedName("id")
+    private String id;
+    @SerializedName("name")
+    private String name;
+    @SerializedName("mimeType")
+    private String mimeType;
+    @SerializedName("description")
+    private String description;
+    @SerializedName("starred")
+    private boolean starred;
+    @SerializedName("trashed")
+    private boolean trashed;
+    @SerializedName("explicitlyTrashed")
+    private boolean explicitlyTrashed;
+    @SerializedName("hasThumbnail")
+    private boolean hasThumbnail;
+    @SerializedName("thumbnailLink")
+    private String thumbnailLink;
+    @SerializedName("parents")
+    private String[] parents;
+    @SerializedName("createdTime")
+    private Date createdTime;
+    @SerializedName("modifiedTime")
+    private Date modifiedTime;
+    @SerializedName("shared")
+    private boolean shared;
+    @SerializedName("fileExtension")
+    private String fileExtension;
+    @SerializedName("size")
+    private long size;
 
     public String getKind() {
         return kind;
@@ -133,9 +151,25 @@ public class DriveFile {
         this.size = size;
     }
 
+    public boolean isHasThumbnail() {
+        return hasThumbnail;
+    }
+
+    public void setHasThumbnail(boolean hasThumbnail) {
+        this.hasThumbnail = hasThumbnail;
+    }
+
+    public String getThumbnailLink() {
+        return thumbnailLink;
+    }
+
+    public void setThumbnailLink(String thumbnailLink) {
+        this.thumbnailLink = thumbnailLink;
+    }
+
     @Override
     public String toString() {
         return "DriveFile <" + "id = " + id +
-                ", name = " + name + ", mimeType = " + mimeType + '>';
+                ", name = " + name + ", mimeType = " + mimeType +", hasThumbNail = " + hasThumbnail +", thumbnailLink = " + thumbnailLink +", size = " + size + '>';
     }
 }
