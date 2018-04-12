@@ -52,13 +52,11 @@ public class CustomRequestBody extends RequestBody {
         boolean uploadFail = false;
 
         try (FileInputStream in = new FileInputStream(file)) {
-            // init variables
             byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
             long uploadedBytes = 0;
             int readBytes;
             int fileUploadedInPercent = 0;
 
-            // go through the file and notify the UI
             while ((readBytes = in.read(buffer)) != -1) {
                 if (!isUnMeteredNetWork()) {
                     uploadFail = true;

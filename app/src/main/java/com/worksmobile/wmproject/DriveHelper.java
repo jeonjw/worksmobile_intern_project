@@ -155,10 +155,6 @@ public class DriveHelper {
         }
     }
 
-    public String getExtension(File file) {
-        return getExtension(file.getName());
-    }
-
     public String getExtension(String fileName) {
         String lowerName = fileName.toLowerCase();
         if (!lowerName.contains("."))
@@ -168,7 +164,7 @@ public class DriveHelper {
 
     public String getMimeType(File file) {
         MimeTypeMap map = MimeTypeMap.getSingleton();
-        String mimeType = map.getMimeTypeFromExtension(getExtension(file));
+        String mimeType = map.getMimeTypeFromExtension(getExtension(file.getName()));
         if (TextUtils.isEmpty(mimeType))
             return "*/*";
         return mimeType;

@@ -8,11 +8,13 @@ import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 
-import com.worksmobile.wmproject.MediaStoreObserver;
+import com.worksmobile.wmproject.content_observer.MediaStoreObserver;
 
 public class MediaStoreService extends Service {
-    private static final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-    private MediaStoreObserver mediaStorageObserver;
+    private static final Uri IMAGE_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+    private static final Uri VIDEO_CONTENT_URI = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+    private MediaStoreObserver imageObserver;
+    private MediaStoreObserver videoObserver;
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -39,18 +41,17 @@ public class MediaStoreService extends Service {
     }
 
     private void registerObserver() {
-        if (mediaStorageObserver == null) {
-            mediaStorageObserver = new MediaStoreObserver(new Handler(), MediaStoreService.this);
-            getContentResolver().registerContentObserver(uri, true, mediaStorageObserver);
-        }
+        imageObserver = new MediaStoreObserver(new Handler(), MediaStoreService.this, IMAGE_CONTENT_URI);
+        videoObserver = new MediaStoreObserver(new Handler(), MediaStoreService.this, VIDEO_CONTENT_URI);
+        getContentResolver().registerContentObserver(IMAGE_CONTENT_URI, true, imageObserver);
+        getContentResolver().registerContentObserver(VIDEO_CONTENT_URI, true, videoObserver);
     }
+
 
     private void unregisterObserver() {
         if (getContentResolver() != null) {
-            getContentResolver().unregisterContentObserver(mediaStorageObserver);
-        }
-        if (mediaStorageObserver != null) {
-            mediaStorageObserver = null;
+            getContentResolver().unregisterContentObserver(imageObserver);
+            getContentResolver().unregisterContentObserver(videoObserver);
         }
     }
 }

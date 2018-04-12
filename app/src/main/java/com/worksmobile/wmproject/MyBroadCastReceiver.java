@@ -6,8 +6,6 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
-import android.os.Handler;
-import android.os.Looper;
 import android.widget.Toast;
 
 import com.worksmobile.wmproject.service.BackgroundDriveService;
@@ -40,10 +38,6 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
                     startUploadService(context);
                 else { //와이파이 끊길 시 업로드 서비스 중단.
                     System.out.println("연결 끊김");
-//                    if (serviceIntent != null) {
-//                        new Handler().sendEmptyMessage(999);
-//                        context.stopService(serviceIntent);
-//                    }
                 }
                 break;
         }

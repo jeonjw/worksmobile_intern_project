@@ -41,9 +41,13 @@ public class BackgroundDriveService extends Service {
     public static final int UPLOAD_REQUEST = 700;
     public static final int UPLOAD_SUCCESS = 701;
     public static final int UPLOAD_FAIL = 702;
-    public static final int QUERY = 703;
-    private static final int QUERY_FINISH = 704;
-    private static final int TOKEN_REFRESH = 705;
+    public static final int UPLOAD_FAIL_400 = 703;
+    public static final int UPLOAD_FAIL_EXCEPTION = 704;
+    public static final int UPLOAD_FAIL_FILE_NOT_FOUND = 705;
+    public static final int UPLOAD_REQUEST_FINISH = 710;
+    public static final int QUERY = 706;
+    private static final int QUERY_FINISH = 707;
+    private static final int TOKEN_REFRESH = 708;
 
     private DriveHelper driveHelper;
     private DBHelpler dbHelper;
@@ -56,13 +60,14 @@ public class BackgroundDriveService extends Service {
     private PendingIntent pendingIntent;
     private boolean isProgressNotificationRunning;
     private UploadHandlerThread handlerThread;
-    private Handler mainThreadHandler = new MainThreadHandler(this);
+    private Handler mainThreadHandler;
     private Token token;
 
     @Override
     public void onCreate() {
         super.onCreate();
         System.out.println("BackGround SERVICE CREATE");
+        mainThreadHandler = new MainThreadHandler(this);
         dbHelper = new DBHelpler(this);
 
         driveHelper = new DriveHelper(getString(R.string.client_id), null, this);
@@ -79,7 +84,6 @@ public class BackgroundDriveService extends Service {
         if (token != null) {
             printDBList();
             handlerThread.sendQueryRequest();
-            startForeground(999, new Notification());
         }
         return START_NOT_STICKY;
     }
@@ -100,8 +104,15 @@ public class BackgroundDriveService extends Service {
                     createNotification(uploadCursor.getCount());
                     checkTokenValidity();
                     createUploadRequest(uploadCursor);
-                } else if (uploadCursor != null && uploadCursor.getCount() == 0 && totalUploadCount == 0)
+                } else if (uploadCursor != null && uploadCursor.getCount() == 0 && totalUploadCount == 0) {
+                    startForeground(999, new Notification()); //fakeStartForeground
                     stopSelf();
+                }
+                break;
+
+            case UPLOAD_REQUEST_FINISH:
+                sendUploadFinishNotification();
+                stopSelf();
                 break;
         }
     }
@@ -114,9 +125,6 @@ public class BackgroundDriveService extends Service {
 
     private void handleUploadResult(int uploadStatus) {
         currentProgress++;
-
-        System.out.println("COUNT : " + currentProgress + "TOTAL : " + totalUploadCount);
-
         if (uploadStatus == UPLOAD_SUCCESS) {
             String tryMessage = String.format(Locale.KOREA, getString(R.string.notification_uploading_message), currentProgress, totalUploadCount);
             notificationBuilder.setProgress(totalUploadCount, currentProgress, false);
@@ -126,11 +134,8 @@ public class BackgroundDriveService extends Service {
             uploadFailCount++;
         }
 
-        if (currentProgress == totalUploadCount) {
-            System.out.println("종료 직전");
-            sendUploadFinishNotification();
-            stopSelf();
-        }
+
+        System.out.println("COUNT : " + currentProgress + "TOTAL : " + totalUploadCount);
     }
 
     private void printDBList() {
@@ -208,7 +213,8 @@ public class BackgroundDriveService extends Service {
                             .setDefaults(Notification.DEFAULT_ALL)
                             .setProgress(progressMax, 0, false)
                             .setContentIntent(pendingIntent)
-                            .setPriority(Notification.PRIORITY_HIGH);
+                            .setAutoCancel(true)
+                            .setPriority(Notification.PRIORITY_LOW);
 
             notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
             isProgressNotificationRunning = true;
@@ -223,21 +229,46 @@ public class BackgroundDriveService extends Service {
             notificationMessage = String.format(Locale.KOREA, getString(R.string.notification_upload_fail_message), uploadFailCount);
         }
 
-        notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
-                .setContentTitle(getString(R.string.notification_title))
-                .setContentText(notificationMessage)
-                .setContentIntent(pendingIntent)
-                .setSmallIcon(R.drawable.ic_launcher_foreground);
+
+//        notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
+//                .setContentTitle(getString(R.string.notification_title))
+//                .setContentText(notificationMessage)
+//                .setContentIntent(pendingIntent)
+//                .setSmallIcon(R.drawable.ic_launcher_foreground);
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            stopForeground(true);
+            notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
+                    .setContentTitle(getString(R.string.notification_title))
+                    .setContentText(notificationMessage)
+                    .setContentIntent(pendingIntent)
+                    .setSmallIcon(R.drawable.ic_launcher_foreground);
+        } else {
+            notificationBuilder =
+                    new NotificationCompat.Builder(this)
+                            .setSmallIcon(R.drawable.android)
+                            .setContentTitle(getString(R.string.notification_title))
+                            .setContentText(notificationMessage)
+                            .setPriority(Notification.PRIORITY_LOW)
+                            .setDefaults(Notification.DEFAULT_ALL)
+                            .setContentIntent(pendingIntent);
+
+        }
+        notificationManager.cancel(PROGRESS_NOTIFICATION_ID);
         notificationManager.notify(FINISH_NOTIFICATION_ID, notificationBuilder.build());
     }
 
     private void createUploadRequest(Cursor uploadCursor) {
         if (uploadCursor.moveToFirst()) {
+            handlerThread.removeUploadFinishMessage();
             do {
                 int databaseID = uploadCursor.getInt(0);
                 String location = uploadCursor.getString(1);
                 handlerThread.sendUploadRequest(databaseID, location);
             } while (uploadCursor.moveToNext());
+
+            handlerThread.notifyUploadFinish();
         }
     }
 
@@ -246,7 +277,6 @@ public class BackgroundDriveService extends Service {
         private Handler handler;
         private Call<UploadResult> call;
         private boolean hasExceptionOccured;
-
         public UploadHandlerThread(String name) {
             super(name);
         }
@@ -270,7 +300,9 @@ public class BackgroundDriveService extends Service {
                             dbHelper.updateDB("STATUS", "UPLOADED", "LOCATION", location);
                             break;
                         case UPLOAD_FAIL:
-                            mainThreadHandler.sendEmptyMessage(UPLOAD_FAIL);
+                            Message message = handler.obtainMessage(UPLOAD_FAIL);
+                            message.arg1 = msg.arg1;
+                            mainThreadHandler.sendMessage(message);
 
                             location = (String) msg.obj;
                             dbHelper.updateDB("STATUS", "UPLOAD", "LOCATION", location);
@@ -281,8 +313,9 @@ public class BackgroundDriveService extends Service {
                         case TOKEN_REFRESH:
                             executeTokenRefresh();
                             break;
-
-
+                        case UPLOAD_REQUEST_FINISH:
+                            mainThreadHandler.sendEmptyMessage(UPLOAD_REQUEST_FINISH);
+                            break;
                     }
                 }
             };
@@ -304,25 +337,44 @@ public class BackgroundDriveService extends Service {
             handler.sendMessageAtFrontOfQueue(message);
         }
 
+        public void notifyUploadFinish() {
+            handler.sendEmptyMessage(UPLOAD_REQUEST_FINISH);
+        }
+
+        public void removeUploadFinishMessage() {
+            handler.removeMessages(UPLOAD_REQUEST_FINISH);
+        }
+
         private void executeUpload(String location) {
             if (!hasExceptionOccured) {
                 call = driveHelper.createUploadCall(location, handler);
                 if (call == null) {
                     dbHelper.deleteDB("LOCATION", location);
-                    mainThreadHandler.sendEmptyMessage(UPLOAD_FAIL);
+
+                    Message message = handler.obtainMessage(UPLOAD_FAIL);
+                    message.arg1 = UPLOAD_FAIL_FILE_NOT_FOUND;
+
+                    mainThreadHandler.sendMessage(message);
                     return;
                 }
                 try {
                     Response<UploadResult> response = call.execute();
-
                     DriveUtils.printResponse("uploadFile", response);
+
+                    if (!response.isSuccessful()) {
+                        Message message = handler.obtainMessage(UPLOAD_FAIL, location);
+                        message.arg1 = UPLOAD_FAIL_400;
+                        handler.removeMessages(UPLOAD_SUCCESS, location);
+                        handler.sendMessageAtFrontOfQueue(message);
+                    }
                 } catch (IOException e) {
                     hasExceptionOccured = true;
                     e.printStackTrace();
                 }
             } else {
-                dbHelper.updateDB("STATUS", "UPLOAD", "LOCATION", location);
-                mainThreadHandler.sendEmptyMessage(UPLOAD_FAIL);
+                Message message = handler.obtainMessage(UPLOAD_FAIL, location);
+                message.arg1 = UPLOAD_FAIL_EXCEPTION;
+                handler.sendMessageAtFrontOfQueue(message);
             }
         }
 

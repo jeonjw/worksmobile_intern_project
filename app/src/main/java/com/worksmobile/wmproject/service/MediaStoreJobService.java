@@ -17,8 +17,8 @@ import android.provider.MediaStore;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
-import com.worksmobile.wmproject.MediaStoreObserver;
 import com.worksmobile.wmproject.MyBroadCastReceiver;
+import com.worksmobile.wmproject.content_observer.MediaStoreObserver;
 
 import java.util.List;
 
@@ -26,8 +26,10 @@ import java.util.List;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MediaStoreJobService extends JobService {
 
-    private static final Uri uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
-    private MediaStoreObserver mediaStoreObserver;
+    private static final Uri IMAGE_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+    private static final Uri VIDEO_CONTENT_URI = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
+    private MediaStoreObserver imageObserver;
+    private MediaStoreObserver videoObserver;
     private ConnectivityManager.NetworkCallback networkCallback;
     private ConnectivityManager connectivityManager;
     private int firstAvailableCount;
@@ -121,18 +123,17 @@ public class MediaStoreJobService extends JobService {
     }
 
     private void registerObserver() {
-        if (mediaStoreObserver == null) {
-            mediaStoreObserver = new MediaStoreObserver(new Handler(), MediaStoreJobService.this);
-            getContentResolver().registerContentObserver(uri, true, mediaStoreObserver);
-        }
+        imageObserver = new MediaStoreObserver(new Handler(), MediaStoreJobService.this, IMAGE_CONTENT_URI);
+        videoObserver = new MediaStoreObserver(new Handler(), MediaStoreJobService.this, VIDEO_CONTENT_URI);
+        getContentResolver().registerContentObserver(IMAGE_CONTENT_URI, true, imageObserver);
+        getContentResolver().registerContentObserver(VIDEO_CONTENT_URI, true, videoObserver);
+
     }
 
     private void unregisterObserver() {
         if (getContentResolver() != null) {
-            getContentResolver().unregisterContentObserver(mediaStoreObserver);
-        }
-        if (mediaStoreObserver != null) {
-            mediaStoreObserver = null;
+            getContentResolver().unregisterContentObserver(imageObserver);
+            getContentResolver().unregisterContentObserver(videoObserver);
         }
     }
 
