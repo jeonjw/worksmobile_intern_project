@@ -35,6 +35,7 @@ public class DriveHelper {
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
+    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType";
 
     private String clientId;
     private String clientSecret;
@@ -176,11 +177,10 @@ public class DriveHelper {
 
     public void listFiles(String folderId, final ListCallback callback) {
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
-                "name", 1000, null, String.format("'%s' in parents", folderId) + " and trashed = false") ;
+                "name", 1000, null, String.format("'%s' in parents", folderId) + " and trashed = false", QUERY_FIELDS);
         call.enqueue(new Callback<DriveFiles>() {
             @Override
             public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
-                System.out.println("TEST");
                 String message = DriveUtils.printResponse("listFiles", response);
                 if (message == SUCCESS) {
                     if (callback != null) {

@@ -67,7 +67,8 @@ public interface DriveApi {
             @Query("orderBy") String orderBy,
             @Query("pageSize") int pageSize,
             @Query("pageToken") String pageToken,
-            @Query("q") String q
+            @Query("q") String q,
+            @Query("fields") String fields
     );
 
     /**

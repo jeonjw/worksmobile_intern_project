@@ -22,7 +22,7 @@ import com.worksmobile.wmproject.ContractDB;
 import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.DriveUtils;
-import com.worksmobile.wmproject.MainActivity;
+import com.worksmobile.wmproject.ui.MainActivity;
 import com.worksmobile.wmproject.MainThreadHandler;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.retrofit_object.Token;

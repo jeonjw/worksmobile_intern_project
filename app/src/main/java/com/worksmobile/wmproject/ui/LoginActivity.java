@@ -12,7 +12,6 @@ import android.view.View;
 
 import com.google.gson.Gson;
 import com.worksmobile.wmproject.DriveHelper;
-import com.worksmobile.wmproject.MainActivity;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.TokenCallback;
 import com.worksmobile.wmproject.retrofit_object.Token;
@@ -34,7 +33,7 @@ public class LoginActivity extends AppCompatActivity {
                 "response_type=code&" +
                 "access_type=offline&" +
                 "prompt=consent&" +
-                "scope=https://www.googleapis.com/auth/drivez+https://www.googleapis.com/auth/userinfo.profile&" +
+                "scope=https://www.googleapis.com/auth/drive&" +
                 "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
 
         if (restoreAuthState() != null) {

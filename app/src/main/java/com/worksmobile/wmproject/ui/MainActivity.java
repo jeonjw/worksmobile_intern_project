@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject;
+package com.worksmobile.wmproject.ui;
 
 import android.Manifest;
 import android.app.Notification;
@@ -22,9 +22,9 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
-import com.worksmobile.wmproject.ui.PhotoFragment;
 
 
 public class MainActivity extends AppCompatActivity

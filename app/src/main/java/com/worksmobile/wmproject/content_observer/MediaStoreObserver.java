@@ -70,7 +70,7 @@ public class MediaStoreObserver extends ContentObserver {
             }
 
             sendBroakdCastTask = sendDriveBroadCast();
-            handler.postDelayed(sendBroakdCastTask, 5000);
+            handler.postDelayed(sendBroakdCastTask, 3000);
 
         }
         System.out.println(" Observer : 스토리지 갯수 : " + storageCount);
