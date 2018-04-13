@@ -2,9 +2,10 @@ package com.worksmobile.wmproject.retrofit_object;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.io.Serializable;
 import java.util.Date;
 
-public class DriveFile {
+public class DriveFile implements Serializable {
 
     @SerializedName("kind")
     private String kind;
@@ -38,6 +39,16 @@ public class DriveFile {
     private String fileExtension;
     @SerializedName("size")
     private long size;
+
+    private boolean isSelected;
+
+    public boolean isSelected() {
+        return isSelected;
+    }
+
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+    }
 
     public String getKind() {
         return kind;

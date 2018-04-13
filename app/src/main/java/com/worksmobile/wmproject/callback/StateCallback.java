@@ -1,6 +1,6 @@
 package com.worksmobile.wmproject.callback;
 
 public interface StateCallback {
-    void onSuccess();
+    void onSuccess(String msg);
     void onFailure(String msg);
 }

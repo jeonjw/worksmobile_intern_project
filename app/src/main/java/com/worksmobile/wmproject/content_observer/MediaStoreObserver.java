@@ -85,8 +85,8 @@ public class MediaStoreObserver extends ContentObserver {
         SQLiteDatabase db = dbHelper.getWritableDatabase();
 //        db.execSQL("DROP TABLE IF EXISTS " + "UPLOAD_TABLE");
 //        db.execSQL(ContractDB.SQL_CREATE_TBL);
-        db.execSQL(ContractDB.SQL_DELETE);
-        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
+//        db.execSQL(ContractDB.SQL_DELETE);
+//        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
 
     }
 

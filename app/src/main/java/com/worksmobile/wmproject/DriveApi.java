@@ -77,7 +77,8 @@ public interface DriveApi {
     @GET("/drive/v3/files/fileId")
     Call<DriveFile> getFile(
             @Header("Authorization") String authToken,
-            @Query("fileId") String driveId
+            @Query("fileId") String driveId,
+            @Query("fields") String fields
     );
 
     /**

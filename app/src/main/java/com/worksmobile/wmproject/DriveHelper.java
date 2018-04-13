@@ -4,9 +4,11 @@ import android.content.Context;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
+import com.google.gson.Gson;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
@@ -16,6 +18,7 @@ import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import java.io.File;
+import java.io.IOException;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -43,17 +46,69 @@ public class DriveHelper {
     private DriveApi driveApi;
     private Context context;
 
-    public DriveHelper(String clientId, String clientSecret, Context context) {
+    public DriveHelper(Context context) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL_API)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         driveApi = retrofit.create(DriveApi.class);
-
-        this.clientId = clientId;
-        this.clientSecret = clientSecret;
         this.context = context;
+        this.clientId = context.getString(R.string.client_id);
+        this.clientSecret = null;
+
+        this.token = restoreAuthState();
+        checkTokenValidity();
+    }
+
+    @Nullable
+    private Token restoreAuthState() {
+        Gson gson = new Gson();
+        String jsonString = context.getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE)
+                .getString("TOKEN_STATE", null);
+
+        return gson.fromJson(jsonString, Token.class);
+    }
+
+    private void persistAuthState(@NonNull Token token) {
+        Gson gson = new Gson();
+        String tokenJson = gson.toJson(token);
+
+        context.getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE).edit()
+                .putString("TOKEN_STATE", tokenJson)
+                .apply();
+    }
+
+
+    private void checkTokenValidity() {
+        if (token.getNeedsTokenRefresh()) {
+            executeTokenRefresh();
+        }
+    }
+
+    private void executeTokenRefresh() {
+        System.out.println("TOKEN 갱신 진행");
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                Call<Token> call = createTokenRefeshCall();
+                try {
+                    Response<Token> response = call.execute();
+
+                    String message = DriveUtils.printResponse("refreshToken", response);
+                    if (message == "SUCCESS") {
+                        Token refreshTtoken = response.body();
+                        token.setAccessToken(refreshTtoken.getAccessToken());
+                        token.setTokenTimeStamp(System.currentTimeMillis());
+                        persistAuthState(token);
+                    } else {
+                        System.out.println(message);
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     public void setToken(Token token) {
@@ -205,14 +260,15 @@ public class DriveHelper {
     }
 
     public void getFile(String fileId, final StateCallback callback) {
-        Call<DriveFile> call = driveApi.getFile(getAuthToken(), fileId);
+        Call<DriveFile> call = driveApi.getFile(getAuthToken(), fileId, "thumbnailLink");
         call.enqueue(new Callback<DriveFile>() {
             @Override
             public void onResponse(Call<DriveFile> call, Response<DriveFile> response) {
                 String message = DriveUtils.printResponse("getFile", response);
-                if (message == null) {
+                if (message == SUCCESS) {
                     if (callback != null) {
-                        callback.onSuccess();
+                        DriveFile file = response.body();
+                        callback.onSuccess(file.getThumbnailLink());
                     }
                 } else {
                     if (callback != null) {

@@ -38,6 +38,7 @@ import retrofit2.Response;
 public class BackgroundDriveService extends Service {
     private static final int PROGRESS_NOTIFICATION_ID = 100;
     private static final int FINISH_NOTIFICATION_ID = 200;
+    public static final int READY = 300;
     public static final int UPLOAD_REQUEST = 700;
     public static final int UPLOAD_SUCCESS = 701;
     public static final int UPLOAD_FAIL = 702;
@@ -61,7 +62,7 @@ public class BackgroundDriveService extends Service {
     private boolean isProgressNotificationRunning;
     private UploadHandlerThread handlerThread;
     private Handler mainThreadHandler;
-    private Token token;
+
 
     @Override
     public void onCreate() {
@@ -70,26 +71,25 @@ public class BackgroundDriveService extends Service {
         mainThreadHandler = new MainThreadHandler(this);
         dbHelper = new DBHelpler(this);
 
-        driveHelper = new DriveHelper(getString(R.string.client_id), null, this);
-
-        token = restoreAuthState();
-        driveHelper.setToken(token);
-
+        driveHelper = new DriveHelper(this);
         handlerThread = new UploadHandlerThread("UploadHandlerThread");
         handlerThread.start();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (token != null) {
-            printDBList();
+        printDBList();
+        if (isProgressNotificationRunning)
             handlerThread.sendQueryRequest();
-        }
+
         return START_NOT_STICKY;
     }
 
     public void handleMessage(Message msg) {
         switch (msg.what) {
+            case READY:
+                handlerThread.sendQueryRequest();
+                break;
             case UPLOAD_SUCCESS:
                 handleUploadResult(UPLOAD_SUCCESS);
                 break;
@@ -102,7 +102,6 @@ public class BackgroundDriveService extends Service {
                 if (uploadCursor != null && uploadCursor.getCount() > 0) {
                     totalUploadCount += uploadCursor.getCount();
                     createNotification(uploadCursor.getCount());
-                    checkTokenValidity();
                     createUploadRequest(uploadCursor);
                 } else if (uploadCursor != null && uploadCursor.getCount() == 0 && totalUploadCount == 0) {
                     startForeground(999, new Notification()); //fakeStartForeground
@@ -114,12 +113,6 @@ public class BackgroundDriveService extends Service {
                 sendUploadFinishNotification();
                 stopSelf();
                 break;
-        }
-    }
-
-    private void checkTokenValidity() {
-        if (token.getNeedsTokenRefresh()) {
-            handlerThread.sendTokenRefreshRequest();
         }
     }
 
@@ -277,6 +270,7 @@ public class BackgroundDriveService extends Service {
         private Handler handler;
         private Call<UploadResult> call;
         private boolean hasExceptionOccured;
+
         public UploadHandlerThread(String name) {
             super(name);
         }
@@ -310,15 +304,14 @@ public class BackgroundDriveService extends Service {
                         case QUERY:
                             createUploadList();
                             break;
-                        case TOKEN_REFRESH:
-                            executeTokenRefresh();
-                            break;
                         case UPLOAD_REQUEST_FINISH:
                             mainThreadHandler.sendEmptyMessage(UPLOAD_REQUEST_FINISH);
                             break;
                     }
                 }
             };
+            Message message = handler.obtainMessage(READY);
+            mainThreadHandler.sendMessageAtFrontOfQueue(message);
         }
 
         public void sendUploadRequest(int databaseID, String location) {
@@ -375,25 +368,6 @@ public class BackgroundDriveService extends Service {
                 Message message = handler.obtainMessage(UPLOAD_FAIL, location);
                 message.arg1 = UPLOAD_FAIL_EXCEPTION;
                 handler.sendMessageAtFrontOfQueue(message);
-            }
-        }
-
-        private void executeTokenRefresh() {
-            Call<Token> call = driveHelper.createTokenRefeshCall();
-            try {
-                Response<Token> response = call.execute();
-
-                String message = DriveUtils.printResponse("refreshToken", response);
-                if (message == "SUCCESS") {
-                    Token refreshTtoken = response.body();
-                    token.setAccessToken(refreshTtoken.getAccessToken());
-                    token.setTokenTimeStamp(System.currentTimeMillis());
-                    persistAuthState(token);
-                } else {
-                    System.out.println(message);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         }
 

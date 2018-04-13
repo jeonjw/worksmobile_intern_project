@@ -85,7 +85,7 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private void requestToken(String code) {
-        DriveHelper driveHelper = new DriveHelper(getString(R.string.client_id), null, this);
+        DriveHelper driveHelper = new DriveHelper(this);
         driveHelper.getToken(new TokenCallback() {
             @Override
             public void onSuccess(Token token) {
@@ -97,6 +97,7 @@ public class LoginActivity extends AppCompatActivity {
                     finish();
                 }
             }
+
             @Override
             public void onFailure(String msg) {
                 Log.e(TAG, msg);
