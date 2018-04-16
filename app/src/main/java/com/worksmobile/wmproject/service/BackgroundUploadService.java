@@ -23,7 +23,7 @@ import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.DriveUtils;
 import com.worksmobile.wmproject.ui.MainActivity;
-import com.worksmobile.wmproject.MainThreadHandler;
+import com.worksmobile.wmproject.BackgroundServiceHandler;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
@@ -35,7 +35,7 @@ import retrofit2.Call;
 import retrofit2.Response;
 
 
-public class BackgroundDriveService extends Service {
+public class BackgroundUploadService extends Service {
     private static final int PROGRESS_NOTIFICATION_ID = 100;
     private static final int FINISH_NOTIFICATION_ID = 200;
     public static final int READY = 300;
@@ -68,7 +68,7 @@ public class BackgroundDriveService extends Service {
     public void onCreate() {
         super.onCreate();
         System.out.println("BackGround SERVICE CREATE");
-        mainThreadHandler = new MainThreadHandler(this);
+        mainThreadHandler = new BackgroundServiceHandler(this);
         dbHelper = new DBHelpler(this);
 
         driveHelper = new DriveHelper(this);
@@ -159,16 +159,6 @@ public class BackgroundDriveService extends Service {
                 .apply();
     }
 
-    @Nullable
-    private Token restoreAuthState() {
-        Gson gson = new Gson();
-        String jsonString = getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE)
-                .getString("TOKEN_STATE", null);
-
-
-        return gson.fromJson(jsonString, Token.class);
-    }
-
     @Override
     public IBinder onBind(Intent intent) {
         return null;
@@ -222,17 +212,9 @@ public class BackgroundDriveService extends Service {
             notificationMessage = String.format(Locale.KOREA, getString(R.string.notification_upload_fail_message), uploadFailCount);
         }
 
-
-//        notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
-//                .setContentTitle(getString(R.string.notification_title))
-//                .setContentText(notificationMessage)
-//                .setContentIntent(pendingIntent)
-//                .setSmallIcon(R.drawable.ic_launcher_foreground);
-
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             stopForeground(true);
-            notificationBuilder = new NotificationCompat.Builder(BackgroundDriveService.this, "WM_PROJECT")
+            notificationBuilder = new NotificationCompat.Builder(BackgroundUploadService.this, "WM_PROJECT")
                     .setContentTitle(getString(R.string.notification_title))
                     .setContentText(notificationMessage)
                     .setContentIntent(pendingIntent)
@@ -322,11 +304,6 @@ public class BackgroundDriveService extends Service {
 
         public void sendQueryRequest() {
             Message message = handler.obtainMessage(QUERY);
-            handler.sendMessageAtFrontOfQueue(message);
-        }
-
-        public void sendTokenRefreshRequest() {
-            Message message = handler.obtainMessage(TOKEN_REFRESH);
             handler.sendMessageAtFrontOfQueue(message);
         }
 

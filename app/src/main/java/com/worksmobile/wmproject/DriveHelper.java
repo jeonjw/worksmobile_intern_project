@@ -1,11 +1,13 @@
 package com.worksmobile.wmproject;
 
 import android.content.Context;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
+import android.util.Log;
 import android.webkit.MimeTypeMap;
 
 import com.google.gson.Gson;
@@ -17,20 +19,26 @@ import com.worksmobile.wmproject.retrofit_object.DriveFiles;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_FAIL;
-import static com.worksmobile.wmproject.service.BackgroundDriveService.UPLOAD_SUCCESS;
+import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_FAIL;
+import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_SUCCESS;
 
 
 public class DriveHelper {
@@ -312,5 +320,98 @@ public class DriveHelper {
                 }
             }
         });
+    }
+
+    public void downloadFile(String fileId, File dstFile, final StateCallback callback) {
+        Call<ResponseBody> call = driveApi.downloadFile(getAuthToken(), fileId);
+        call.enqueue(new Callback<ResponseBody>() {
+            @Override
+            public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
+                String message = DriveUtils.printResponse("downloadFile", response);
+                if (response.isSuccessful()) {
+                    boolean writtenToDisk = writeResponseBodyToDisk(response.body());
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ResponseBody> call, Throwable t) {
+                String message = DriveUtils.printFailure("downloadFile", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
+    public boolean isExternalStorageWritable() {
+        String state = Environment.getExternalStorageState();
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean writeResponseBodyToDisk(ResponseBody body) {
+
+        System.out.println("WRITABLE : " + isExternalStorageWritable());
+
+        try {
+            // todo change the file location/name according to your needs
+            File downloadedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "test.jpeg");
+
+            if (downloadedFile.canWrite())
+                System.out.println("쓰기 가능");
+            else
+                System.out.println("쓰기 불가");
+
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
+
+            try {
+                byte[] fileReader = new byte[4096];
+
+                long fileSize = body.contentLength();
+                long fileSizeDownloaded = 0;
+
+                inputStream = body.byteStream();
+                outputStream = new FileOutputStream(downloadedFile);
+
+                while (true) {
+                    int read = inputStream.read(fileReader);
+
+                    if (read == -1) {
+                        break;
+                    }
+
+                    outputStream.write(fileReader, 0, read);
+
+                    fileSizeDownloaded += read;
+
+//                    Log.d("TEST", "file download: " + fileSizeDownloaded + " of " + fileSize);
+                }
+
+                outputStream.flush();
+
+                return true;
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 }

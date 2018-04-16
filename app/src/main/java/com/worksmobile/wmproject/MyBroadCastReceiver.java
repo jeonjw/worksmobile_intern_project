@@ -8,7 +8,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.widget.Toast;
 
-import com.worksmobile.wmproject.service.BackgroundDriveService;
+import com.worksmobile.wmproject.service.BackgroundUploadService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
 public class MyBroadCastReceiver extends BroadcastReceiver {
@@ -56,7 +56,7 @@ public class MyBroadCastReceiver extends BroadcastReceiver {
     }
 
     private void startUploadService(Context context) {
-        serviceIntent = new Intent(context, BackgroundDriveService.class);
+        serviceIntent = new Intent(context, BackgroundUploadService.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             context.startForegroundService(serviceIntent);
         else

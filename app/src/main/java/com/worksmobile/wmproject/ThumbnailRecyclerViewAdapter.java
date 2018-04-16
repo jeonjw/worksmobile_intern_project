@@ -91,8 +91,8 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         checkedItems.clear();
     }
 
-    public List<DriveFile> getCheckedFileList() {
-        List<DriveFile> checkedFileList = new ArrayList<>();
+    public ArrayList<DriveFile> getCheckedFileList() {
+        ArrayList<DriveFile> checkedFileList = new ArrayList<>();
         for (Integer i : checkedItems) {
             checkedFileList.add(fileList.get(i));
 

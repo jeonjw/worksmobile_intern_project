@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 public class PhotoFragment extends Fragment
@@ -197,7 +198,10 @@ public class PhotoFragment extends Fragment
 
     @Override
     public void onDownload() {
-
+        ArrayList<DriveFile> downloadList = adapter.getCheckedFileList();
+        Intent intent = new Intent(getContext(), DownloadActivity.class);
+        intent.putExtra("DOWNLOAD_LIST", downloadList);
+        startActivity(intent);
     }
 
     @Override
