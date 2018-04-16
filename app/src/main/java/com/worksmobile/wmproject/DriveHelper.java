@@ -115,13 +115,13 @@ public class DriveHelper {
         this.token = token;
     }
 
-    public void getToken(final TokenCallback callback, String mAuthCode) {
+    public void enqueueToeknRequestCall(final TokenCallback callback, String mAuthCode) {
         Call<Token> call = driveApi.getToken(mAuthCode, clientId,
                 clientSecret, REDIRECT_URI, "authorization_code");
         call.enqueue(new Callback<Token>() {
             @Override
             public void onResponse(@NonNull Call<Token> call, @NonNull Response<Token> response) {
-                String message = DriveUtils.printResponse("getToken", response);
+                String message = DriveUtils.printResponse("enqueueToeknRequestCall", response);
                 if (message == SUCCESS) {
                     token = response.body();
                     token.setTokenTimeStamp(System.currentTimeMillis());
@@ -138,7 +138,34 @@ public class DriveHelper {
 
             @Override
             public void onFailure(@NonNull Call<Token> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("getToken", t);
+                String message = DriveUtils.printFailure("enqueueToeknRequestCall", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
+    public void enqueueFileDeleteCall(String fileId, final StateCallback callback) {
+        Call<Void> call = driveApi.deleteFile(getAuthToken(), fileId);
+        call.enqueue(new Callback<Void>() {
+            @Override
+            public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
+                String message = DriveUtils.printResponse("enqueueFileDeleteCall", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(null);
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Void> call, Throwable t) {
+                String message = DriveUtils.printFailure("enqueueFileDeleteCall", t);
                 if (callback != null) {
                     callback.onFailure(message);
                 }
@@ -230,13 +257,13 @@ public class DriveHelper {
         return mimeType;
     }
 
-    public void listFiles(String folderId, final ListCallback callback) {
+    public void enqueueListCreationCall(String folderId, final ListCallback callback) {
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
                 "name", 1000, null, String.format("'%s' in parents", folderId) + " and trashed = false", QUERY_FIELDS);
         call.enqueue(new Callback<DriveFiles>() {
             @Override
             public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
-                String message = DriveUtils.printResponse("listFiles", response);
+                String message = DriveUtils.printResponse("enqueueListCreationCall", response);
                 if (message == SUCCESS) {
                     if (callback != null) {
                         callback.onSuccess(response.body().getFiles());
@@ -251,7 +278,7 @@ public class DriveHelper {
 
             @Override
             public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("listFiles", t);
+                String message = DriveUtils.printFailure("enqueueListCreationCall", t);
                 if (callback != null) {
                     callback.onFailure(message);
                 }
@@ -259,12 +286,12 @@ public class DriveHelper {
         });
     }
 
-    public void getFile(String fileId, final StateCallback callback) {
+    public void enqueueFileInfoCall(String fileId, final StateCallback callback) {
         Call<DriveFile> call = driveApi.getFile(getAuthToken(), fileId, "thumbnailLink");
         call.enqueue(new Callback<DriveFile>() {
             @Override
             public void onResponse(Call<DriveFile> call, Response<DriveFile> response) {
-                String message = DriveUtils.printResponse("getFile", response);
+                String message = DriveUtils.printResponse("enqueueFileInfoCall", response);
                 if (message == SUCCESS) {
                     if (callback != null) {
                         DriveFile file = response.body();
@@ -279,7 +306,7 @@ public class DriveHelper {
 
             @Override
             public void onFailure(Call<DriveFile> call, Throwable t) {
-                String message = DriveUtils.printFailure("getFile", t);
+                String message = DriveUtils.printFailure("enqueueFileInfoCall", t);
                 if (callback != null) {
                     callback.onFailure(message);
                 }

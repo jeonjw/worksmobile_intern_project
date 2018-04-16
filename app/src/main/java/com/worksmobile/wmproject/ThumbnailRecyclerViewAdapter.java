@@ -17,14 +17,14 @@ import java.util.List;
 import java.util.Set;
 
 public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<ThumbnailRecyclerViewAdapter.ThumbnailViewHolder> {
-    private List<DriveFile> thumbnailLinkList;
+    private List<DriveFile> fileList;
     private Set<Integer> checkedItems;
     private View.OnClickListener itemClickListener;
     private OnModeChangeListener modeChangeListener;
     private boolean allCheckboxShow;
 
     public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
-        this.thumbnailLinkList = thumbnailLinkList;
+        this.fileList = thumbnailLinkList;
         this.itemClickListener = clickListener;
         this.modeChangeListener = modeChangeListener;
         checkedItems = new HashSet<>();
@@ -42,7 +42,7 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
 
         GlideApp.with(holder.imageView)
-                .load(thumbnailLinkList.get(position).getThumbnailLink())
+                .load(fileList.get(position).getThumbnailLink())
                 .centerCrop()
                 .into(holder.imageView);
 
@@ -61,14 +61,27 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         allCheckboxShow = mode;
 
         if (!mode)
-            checkedItems.clear();
+            clearCheckedItem();
 
         notifyDataSetChanged();
     }
 
+    public void clearCheckedItem() {
+        checkedItems.clear();
+    }
+
+    public List<DriveFile> getCheckedFileList() {
+        List<DriveFile> checkedFileList = new ArrayList<>();
+        for (Integer i : checkedItems) {
+            checkedFileList.add(fileList.get(i));
+
+        }
+        return checkedFileList;
+    }
+
     @Override
     public int getItemCount() {
-        return thumbnailLinkList.size();
+        return fileList.size();
     }
 
     class ThumbnailViewHolder extends RecyclerView.ViewHolder {

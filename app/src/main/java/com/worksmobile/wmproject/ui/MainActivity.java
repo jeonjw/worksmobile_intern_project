@@ -24,11 +24,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.worksmobile.wmproject.R;
-import com.worksmobile.wmproject.callback.OnSelectModeCancelListener;
+import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
@@ -40,7 +43,9 @@ public class MainActivity extends AppCompatActivity
     private Toolbar toolbar;
     private TextView toolbarTextView;
     private ActionBarDrawerToggle toggle;
-    private OnSelectModeCancelListener onSelectModeCancelListener;
+    private OnSelectModeClickListener onSelectModeClickListener;
+    private LinearLayout bottomView;
+    private boolean selectMode;
 
     private View.OnClickListener drawerListener = new View.OnClickListener() {
         @Override
@@ -56,23 +61,30 @@ public class MainActivity extends AppCompatActivity
     private View.OnClickListener selectModeCloseListener = new View.OnClickListener() {
         @Override
         public void onClick(View v) {
-            toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
-            toolbar.setNavigationOnClickListener(drawerListener);
-            toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
-            toolbarTextView.setText("모든 사진");
-
-            if (onSelectModeCancelListener != null)
-                onSelectModeCancelListener.onCancel();
-
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                Window window = getWindow();
-                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-                window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
-            }
+            closeSelectMode();
         }
     };
+
+    private void closeSelectMode() {
+        toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
+        toolbar.setNavigationOnClickListener(drawerListener);
+        toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
+        toolbarTextView.setText("모든 사진");
+
+        if (onSelectModeClickListener != null)
+            onSelectModeClickListener.onCancel();
+
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
+        }
+
+        bottomView.setVisibility(View.GONE);
+        selectMode = false;
+    }
 
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -83,6 +95,21 @@ public class MainActivity extends AppCompatActivity
 
         toolbar = findViewById(R.id.main_toolbar);
         drawerLayout = findViewById(R.id.drawer_layout);
+        bottomView = findViewById(R.id.bottom_view);
+
+        bottomView.findViewById(R.id.bottom_download_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onSelectModeClickListener.onDownload();
+            }
+        });
+
+        bottomView.findViewById(R.id.bottom_delete_button).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                onSelectModeClickListener.onDelete();
+            }
+        });
 
         initDrawerToggle();
         NavigationView navigationView = findViewById(R.id.navigation_view);
@@ -90,7 +117,7 @@ public class MainActivity extends AppCompatActivity
 
         Fragment fragment = new PhotoFragment();
         getSupportFragmentManager().beginTransaction().add(R.id.content_fragment, fragment).commit();
-        onSelectModeCancelListener = (PhotoFragment) fragment;
+        onSelectModeClickListener = (PhotoFragment) fragment;
 
     }
 
@@ -220,15 +247,25 @@ public class MainActivity extends AppCompatActivity
             window.setStatusBarColor(getResources().getColor(R.color.colorDarkGrayDark));
         }
 
+
+        Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
+        bottomView.setVisibility(View.VISIBLE);
+        bottomView.startAnimation(slideUp);
+        selectMode = true;
+
     }
 
     @Override
     public void onBackPressed() {
-        DrawerLayout drawer = findViewById(R.id.drawer_layout);
-        if (drawer.isDrawerOpen(GravityCompat.START)) {
-            drawer.closeDrawer(GravityCompat.START);
+        if (selectMode) {
+            closeSelectMode();
         } else {
-            super.onBackPressed();
+            DrawerLayout drawer = findViewById(R.id.drawer_layout);
+            if (drawer.isDrawerOpen(GravityCompat.START)) {
+                drawer.closeDrawer(GravityCompat.START);
+            } else {
+                super.onBackPressed();
+            }
         }
     }
 }

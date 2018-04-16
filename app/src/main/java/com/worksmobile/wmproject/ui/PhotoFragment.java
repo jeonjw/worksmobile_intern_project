@@ -1,10 +1,12 @@
 package com.worksmobile.wmproject.ui;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -19,15 +21,19 @@ import com.worksmobile.wmproject.ThumbnailItemDecoration;
 import com.worksmobile.wmproject.ThumbnailRecyclerViewAdapter;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
-import com.worksmobile.wmproject.callback.OnSelectModeCancelListener;
+import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
+import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class PhotoFragment extends Fragment
-        implements OnSelectModeCancelListener {
+        implements OnSelectModeClickListener {
 
 
+    private static final int DELETE = 100;
+    private static final int DOWNLOAD = 101;
     private RecyclerView recyclerView;
     private SwipeRefreshLayout swipeContainer;
     private DriveHelper driveHelper;
@@ -56,11 +62,11 @@ public class PhotoFragment extends Fragment
         swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                getDriveFIleList();
+                requestWholeList();
             }
         });
 
-        getDriveFIleList();
+        requestWholeList();
 
         return view;
     }
@@ -94,8 +100,8 @@ public class PhotoFragment extends Fragment
         return true;
     }
 
-    private void getDriveFIleList() {
-        driveHelper.listFiles("root", new ListCallback() {
+    private void requestWholeList() {
+        driveHelper.enqueueListCreationCall("root", new ListCallback() {
             @Override
             public void onSuccess(DriveFile[] driveFiles) {
                 fileList.clear();
@@ -130,5 +136,64 @@ public class PhotoFragment extends Fragment
     @Override
     public void onCancel() {
         adapter.setSelectMode(false);
+    }
+
+    @Override
+    public void onDownload() {
+
+    }
+
+    @Override
+    public void onDelete() {
+        createAlertDialog(DELETE, adapter.getCheckedFileList().size());
+    }
+
+    public void requestDelete() {
+        for (DriveFile file : adapter.getCheckedFileList()) {
+            driveHelper.enqueueFileDeleteCall(file.getId(), new StateCallback() {
+                @Override
+                public void onSuccess(String msg) {
+                    if (msg == null) {
+                        int position = fileList.indexOf(file);
+                        fileList.remove(position);
+                        adapter.notifyItemRemoved(position);
+                    }
+
+                }
+
+                @Override
+                public void onFailure(String msg) {
+
+                }
+            });
+        }
+        adapter.clearCheckedItem();
+    }
+
+    private void createAlertDialog(int command, int count) {
+        String deleteMessage = String.format(Locale.KOREA, "%d개의 항목을 삭제하시겠습니까?\n삭제된 항목은 휴지통으로 이동합니다.", count);
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getContext());
+        alertDialogBuilder.setTitle("삭제하기")
+                .setMessage(deleteMessage)
+                .setCancelable(false)
+                .setPositiveButton("아니오",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+
+                                dialog.cancel();
+                            }
+                        })
+                .setNegativeButton("예",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int id) {
+                                if (command == DELETE)
+                                    requestDelete();
+                                dialog.cancel();
+                            }
+                        });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
+
     }
 }

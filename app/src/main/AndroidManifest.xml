@@ -41,6 +41,7 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.ImageViewerActivity" />
+        <activity android:name=".ui.DownloadActivity" />
 
         <receiver
             android:name=".MyBroadCastReceiver"

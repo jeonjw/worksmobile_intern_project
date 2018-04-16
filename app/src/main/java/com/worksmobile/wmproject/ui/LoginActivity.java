@@ -86,7 +86,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void requestToken(String code) {
         DriveHelper driveHelper = new DriveHelper(this);
-        driveHelper.getToken(new TokenCallback() {
+        driveHelper.enqueueToeknRequestCall(new TokenCallback() {
             @Override
             public void onSuccess(Token token) {
                 if (token != null) {
