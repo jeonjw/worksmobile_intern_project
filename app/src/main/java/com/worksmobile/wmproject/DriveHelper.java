@@ -81,7 +81,7 @@ public class DriveHelper {
 
 
     private void checkTokenValidity() {
-        if (token.getNeedsTokenRefresh()) {
+        if (token != null && token.getNeedsTokenRefresh()) {
             executeTokenRefresh();
         }
     }

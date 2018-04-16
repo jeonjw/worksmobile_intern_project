@@ -7,6 +7,8 @@
     <color name="colorNaverGreen">#00c73c</color>
     <color name="colorNaverGreenDark">#00AA34</color>
     <color name="colorWhite">#FFFFFF</color>
+    <color name="colorDarkGray">#26272B</color>
+    <color name="colorDarkGrayDark">#18191B</color>
 
 
 </resources>

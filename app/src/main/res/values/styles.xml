@@ -8,6 +8,16 @@
         <item name="colorAccent">@color/colorAccent</item>
     </style>
 
+    <style name="Theme.MyTheme.Green" parent="AppTheme">
+        <item name="colorPrimary">@color/colorNaverGreen</item>
+        <item name="colorPrimaryDark">@color/colorNaverGreenDark</item>
+    </style>
+
+    <style name="Theme.MyTheme.Black" parent="AppTheme">
+        <item name="colorPrimary">@color/colorDarkGray</item>
+        <item name="colorPrimaryDark">@color/colorDarkGrayDark</item>
+    </style>
+
     <style name="LoginDialog" parent="Theme.AppCompat.Light.Dialog" />
 
 </resources>

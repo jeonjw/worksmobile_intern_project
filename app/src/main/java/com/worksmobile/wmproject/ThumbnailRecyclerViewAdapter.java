@@ -8,18 +8,26 @@ import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 
+import com.worksmobile.wmproject.callback.OnModeChangeListener;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<ThumbnailRecyclerViewAdapter.ThumbnailViewHolder> {
     private List<DriveFile> thumbnailLinkList;
+    private Set<Integer> checkedItems;
     private View.OnClickListener itemClickListener;
+    private OnModeChangeListener modeChangeListener;
     private boolean allCheckboxShow;
 
-    public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener) {
+    public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
         this.thumbnailLinkList = thumbnailLinkList;
         this.itemClickListener = clickListener;
+        this.modeChangeListener = modeChangeListener;
+        checkedItems = new HashSet<>();
     }
 
     @Override
@@ -40,10 +48,22 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
 
         if (allCheckboxShow) {
             holder.checkBox.setVisibility(View.VISIBLE);
-            holder.checkBox.setChecked(thumbnailLinkList.get(position).isSelected());
+            if (checkedItems.contains(position))
+                holder.checkBox.setChecked(true);
+            else
+                holder.checkBox.setChecked(false);
         } else {
             holder.checkBox.setVisibility(View.INVISIBLE);
         }
+    }
+
+    public void setSelectMode(boolean mode) {
+        allCheckboxShow = mode;
+
+        if (!mode)
+            checkedItems.clear();
+
+        notifyDataSetChanged();
     }
 
     @Override
@@ -65,9 +85,9 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
                     if (checked) {
-                        thumbnailLinkList.get(getAdapterPosition()).setSelected(true);
+                        checkedItems.add(getAdapterPosition());
                     } else {
-                        thumbnailLinkList.get(getAdapterPosition()).setSelected(false);
+                        checkedItems.remove(getAdapterPosition());
                     }
                 }
             });
@@ -75,10 +95,10 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    System.out.println("LONG CLICK");
                     allCheckboxShow = true;
                     checkBox.setChecked(true);
                     notifyDataSetChanged();
+                    modeChangeListener.onSelectChanged(true);
                     return true;
                 }
             });

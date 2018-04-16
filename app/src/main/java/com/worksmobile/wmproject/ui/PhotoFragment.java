@@ -8,6 +8,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -17,12 +18,14 @@ import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.ThumbnailItemDecoration;
 import com.worksmobile.wmproject.ThumbnailRecyclerViewAdapter;
 import com.worksmobile.wmproject.callback.ListCallback;
-import com.worksmobile.wmproject.callback.OnItemSelectedListener;
+import com.worksmobile.wmproject.callback.OnModeChangeListener;
+import com.worksmobile.wmproject.callback.OnSelectModeCancelListener;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
 import java.util.ArrayList;
 
-public class PhotoFragment extends Fragment {
+public class PhotoFragment extends Fragment
+        implements OnSelectModeCancelListener {
 
 
     private RecyclerView recyclerView;
@@ -32,17 +35,19 @@ public class PhotoFragment extends Fragment {
     private ThumbnailRecyclerViewAdapter adapter;
 
     private View.OnClickListener onClickListener;
-    private OnItemSelectedListener onItemSelectedListener;
+    private OnModeChangeListener onModeChangeListener;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo, container, false);
+        setHasOptionsMenu(true);
+
         driveHelper = new DriveHelper(getContext());
         fileList = new ArrayList<>();
 
         recyclerView = view.findViewById(R.id.thumbnail_recyclerview);
         initClickListener();
 
-        adapter = new ThumbnailRecyclerViewAdapter(fileList, onClickListener);
+        adapter = new ThumbnailRecyclerViewAdapter(fileList, onClickListener, onModeChangeListener);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 3));
         recyclerView.addItemDecoration(new ThumbnailItemDecoration(3, 3));
         recyclerView.setAdapter(adapter);
@@ -71,12 +76,22 @@ public class PhotoFragment extends Fragment {
                 startActivity(intent);
             }
         };
-        onItemSelectedListener = new OnItemSelectedListener() {
+        onModeChangeListener = new OnModeChangeListener() {
             @Override
-            public void onSelectChanged(boolean checked, String fileId) {
-
+            public void onSelectChanged(boolean checked) {
+                ((MainActivity) getActivity()).changeToolbarSelectMode();
             }
         };
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.toolbar_check_button) {
+            Toast.makeText(getContext(), "Checked", Toast.LENGTH_SHORT).show();
+            ((MainActivity) getActivity()).changeToolbarSelectMode();
+            adapter.setSelectMode(true);
+        }
+        return true;
     }
 
     private void getDriveFIleList() {
@@ -110,5 +125,10 @@ public class PhotoFragment extends Fragment {
         } else {
             return string;
         }
+    }
+
+    @Override
+    public void onCancel() {
+        adapter.setSelectMode(false);
     }
 }

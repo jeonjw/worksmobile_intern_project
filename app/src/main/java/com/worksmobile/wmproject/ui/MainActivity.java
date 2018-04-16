@@ -12,17 +12,23 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
+import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.worksmobile.wmproject.R;
+import com.worksmobile.wmproject.callback.OnSelectModeCancelListener;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
@@ -32,8 +38,42 @@ public class MainActivity extends AppCompatActivity
     private static final int READ_EXTERNAL_STORAGE_PERMISSION = 777;
     private DrawerLayout drawerLayout;
     private Toolbar toolbar;
+    private TextView toolbarTextView;
+    private ActionBarDrawerToggle toggle;
+    private OnSelectModeCancelListener onSelectModeCancelListener;
 
-    @Override
+    private View.OnClickListener drawerListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
+                drawerLayout.closeDrawer(GravityCompat.START);
+            } else {
+                drawerLayout.openDrawer(GravityCompat.START);
+            }
+        }
+    };
+
+    private View.OnClickListener selectModeCloseListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View v) {
+            toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
+            toolbar.setNavigationOnClickListener(drawerListener);
+            toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
+            toolbarTextView.setText("모든 사진");
+
+            if (onSelectModeCancelListener != null)
+                onSelectModeCancelListener.onCancel();
+
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                Window window = getWindow();
+                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+                window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
+            }
+        }
+    };
+
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
@@ -48,30 +88,27 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.navigation_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        getSupportFragmentManager().beginTransaction().add(R.id.content_fragment, new PhotoFragment()).commit();
+        Fragment fragment = new PhotoFragment();
+        getSupportFragmentManager().beginTransaction().add(R.id.content_fragment, fragment).commit();
+        onSelectModeCancelListener = (PhotoFragment) fragment;
 
     }
 
     private void initDrawerToggle() {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.drawer_start, R.string.drawer_end);
+        toolbarTextView = toolbar.findViewById(R.id.toolbar_text_view);
+        toolbarTextView.setText("모든 사진");
+
+        toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.drawer_start, R.string.drawer_end);
         drawerLayout.addDrawerListener(toggle);
         toggle.syncState();
 
         toggle.setDrawerIndicatorEnabled(false);
         toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (drawerLayout.isDrawerOpen(GravityCompat.START)) {
-                    drawerLayout.closeDrawer(GravityCompat.START);
-                } else {
-                    drawerLayout.openDrawer(GravityCompat.START);
-                }
-            }
-        });
+        toolbar.setNavigationOnClickListener(drawerListener);
     }
 
     private void createNotificationChannel() {
@@ -153,6 +190,36 @@ public class MainActivity extends AppCompatActivity
         }
 
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            Toast.makeText(this, "Home Main", Toast.LENGTH_SHORT).show();
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        return true;
+    }
+
+    public void changeToolbarSelectMode() {
+        toggle.setHomeAsUpIndicator(R.drawable.ic_close);
+        toolbar.setNavigationOnClickListener(selectModeCloseListener);
+        toolbarTextView.setText("사진을 선택하세요");
+
+        toolbar.setBackgroundColor(getResources().getColor(R.color.colorDarkGray));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(getResources().getColor(R.color.colorDarkGrayDark));
+        }
+
     }
 
     @Override
