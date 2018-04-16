@@ -38,7 +38,7 @@ public class DriveHelper {
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
-    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType";
+    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/imageMediaMetadata";
 
     private String clientId;
     private String clientSecret;

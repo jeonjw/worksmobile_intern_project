@@ -2,7 +2,8 @@
 <resources>
     <color name="colorPrimary">#00c73c</color>
     <color name="colorPrimaryDark">#00AA34</color>
-    <color name="colorAccent">#FF4081</color>
+    <!--<color name="colorAccent">#FF4081</color>-->
+    <color name="colorAccent">#00c73c</color>
 
     <color name="colorNaverGreen">#00c73c</color>
     <color name="colorNaverGreenDark">#00AA34</color>

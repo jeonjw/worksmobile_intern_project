@@ -40,6 +40,29 @@ public class DriveFile implements Serializable {
     @SerializedName("size")
     private long size;
 
+    public ImageMediaMetadata getImageMediaMetadata() {
+        return imageMediaMetadata;
+    }
+
+    public int getWidth() {
+        return imageMediaMetadata.getWidth();
+    }
+
+    public int getHeight() {
+        return imageMediaMetadata.getHeight();
+    }
+
+    public String getTakenTime () {
+        return imageMediaMetadata.getTime();
+    }
+
+    public void setImageMediaMetadata(ImageMediaMetadata imageMediaMetadata) {
+        this.imageMediaMetadata = imageMediaMetadata;
+    }
+
+    @SerializedName("imageMediaMetadata")
+    private ImageMediaMetadata imageMediaMetadata;
+
     private boolean isSelected;
 
     public boolean isSelected() {
@@ -181,6 +204,6 @@ public class DriveFile implements Serializable {
     @Override
     public String toString() {
         return "DriveFile <" + "id = " + id +
-                ", name = " + name + ", mimeType = " + mimeType +", hasThumbNail = " + hasThumbnail +", thumbnailLink = " + thumbnailLink +", size = " + size + '>';
+                ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
     }
 }

@@ -7,4 +7,8 @@
     <string name="notification_upload_try_message">%d개의 파일이 업로드 시도중</string>
     <string name="drawer_start">MAIN</string>
     <string name="drawer_end">ACTIVITYY</string>
+    <string name="sorting_taken_newly">촬영일 - 최신 항목 우선</string>
+    <string name="sorting_taken_older">촬영일 - 오래된 항목 우선</string>
+    <string name="sorting_upload_newly">업로드일 - 최신 항목 우선</string>
+    <string name="sorting_upload_older">업로드일 - 오래된 항목 우선</string>
 </resources>

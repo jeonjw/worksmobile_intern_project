@@ -13,7 +13,6 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
@@ -25,7 +24,12 @@ import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
 import java.util.Locale;
 
 public class PhotoFragment extends Fragment
@@ -42,11 +46,13 @@ public class PhotoFragment extends Fragment
 
     private View.OnClickListener onClickListener;
     private OnModeChangeListener onModeChangeListener;
+    private int currentSortingCriteria;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo, container, false);
         setHasOptionsMenu(true);
 
+        currentSortingCriteria = R.id.taken_time_new;
         driveHelper = new DriveHelper(getContext());
         fileList = new ArrayList<>();
 
@@ -92,10 +98,25 @@ public class PhotoFragment extends Fragment
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.toolbar_check_button) {
-            Toast.makeText(getContext(), "Checked", Toast.LENGTH_SHORT).show();
-            ((MainActivity) getActivity()).changeToolbarSelectMode();
-            adapter.setSelectMode(true);
+
+        switch (item.getItemId()) {
+            case R.id.toolbar_check_button:
+                ((MainActivity) getActivity()).changeToolbarSelectMode();
+                adapter.setSelectMode(true);
+                break;
+
+            case R.id.taken_time_new:
+            case R.id.taken_time_old:
+            case R.id.uploaded_time_new:
+            case R.id.uploaded_time_old:
+                if (item.isChecked()) {
+                    item.setChecked(false);
+                } else {
+                    item.setChecked(true);
+                }
+                sorting(item.getItemId());
+                break;
+
         }
         return true;
     }
@@ -105,11 +126,8 @@ public class PhotoFragment extends Fragment
             @Override
             public void onSuccess(DriveFile[] driveFiles) {
                 fileList.clear();
-                for (DriveFile file : driveFiles) {
-                    String thumbnailLink = file.getThumbnailLink();
-                    file.setThumbnailLink(replaceThumbnailSize(thumbnailLink, "s220", "s550"));
-                    fileList.add(file);
-                }
+                fileList.addAll(Arrays.asList(driveFiles));
+                sorting(currentSortingCriteria);
                 adapter.notifyDataSetChanged();
                 if (swipeContainer.isRefreshing())
                     swipeContainer.setRefreshing(false);
@@ -122,16 +140,55 @@ public class PhotoFragment extends Fragment
         });
     }
 
-    public String replaceThumbnailSize(String string, String toReplace, String replacement) {
-        int pos = string.lastIndexOf(toReplace);
-        if (pos > -1) {
-            return string.substring(0, pos)
-                    + replacement
-                    + string.substring(pos + toReplace.length(), string.length());
-        } else {
-            return string;
+    private void sorting(int sortBy) {
+
+        switch (sortBy) {
+            case R.id.taken_time_new:
+                Collections.sort(fileList, (o1, o2) -> {
+                    Date date1 = getValidTakenTime(o1.getTakenTime(), o1.getCreatedTime());
+                    Date date2 = getValidTakenTime(o2.getTakenTime(), o2.getCreatedTime());
+                    return date2.compareTo(date1);
+                });
+                break;
+            case R.id.taken_time_old:
+                Collections.sort(fileList, (o1, o2) -> {
+                    Date date1 = getValidTakenTime(o1.getTakenTime(), o1.getCreatedTime());
+                    Date date2 = getValidTakenTime(o2.getTakenTime(), o2.getCreatedTime());
+                    return date1.compareTo(date2);
+                });
+                break;
+            case R.id.uploaded_time_new:
+                Collections.sort(fileList, (o1, o2) -> {
+                    if (o1.getCreatedTime() == null || o2.getCreatedTime() == null)
+                        return 0;
+                    return o2.getCreatedTime().compareTo(o1.getCreatedTime());
+                });
+                break;
+            case R.id.uploaded_time_old:
+                Collections.sort(fileList, (o1, o2) -> {
+                    if (o1.getCreatedTime() == null || o2.getCreatedTime() == null)
+                        return 0;
+                    return o1.getCreatedTime().compareTo(o2.getCreatedTime());
+                });
+                break;
         }
+        adapter.notifyDataSetChanged();
     }
+
+    private Date getValidTakenTime(String takenTime, Date createdTime) {
+        Date date = null;
+        try {
+            if (takenTime == null)
+                date = createdTime;
+            else {
+                date = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.KOREA).parse(takenTime);
+            }
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return date;
+    }
+
 
     @Override
     public void onCancel() {

@@ -6,7 +6,29 @@
         android:id="@+id/toolbar_sorting_button"
         android:icon="@drawable/ic_sorting"
         android:title="정렬"
-        app:showAsAction="always" />
+        app:showAsAction="always">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/taken_time_new"
+                    android:checked="true"
+                    android:title="@string/sorting_taken_newly" />
+
+                <item
+                    android:id="@+id/taken_time_old"
+                    android:title="@string/sorting_taken_older" />
+
+                <item
+                    android:id="@+id/uploaded_time_new"
+                    android:title="@string/sorting_upload_newly" />
+
+                <item
+                    android:id="@+id/uploaded_time_old"
+                    android:title="@string/sorting_upload_older" />
+            </group>
+
+        </menu>
+    </item>
     <item
         android:id="@+id/toolbar_serach_button"
         android:icon="@drawable/ic_search"

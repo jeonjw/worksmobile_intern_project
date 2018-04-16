@@ -21,7 +21,7 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     private Set<Integer> checkedItems;
     private View.OnClickListener itemClickListener;
     private OnModeChangeListener modeChangeListener;
-    private boolean allCheckboxShow;
+    private boolean isCheckBoxShowing;
 
     public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
         this.fileList = thumbnailLinkList;
@@ -41,12 +41,15 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     @Override
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
 
+        DriveFile file = fileList.get(position);
+        String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+
         GlideApp.with(holder.imageView)
-                .load(fileList.get(position).getThumbnailLink())
+                .load(thumbnailLink)
                 .centerCrop()
                 .into(holder.imageView);
 
-        if (allCheckboxShow) {
+        if (isCheckBoxShowing) {
             holder.checkBox.setVisibility(View.VISIBLE);
             if (checkedItems.contains(position))
                 holder.checkBox.setChecked(true);
@@ -57,10 +60,28 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         }
     }
 
-    public void setSelectMode(boolean mode) {
-        allCheckboxShow = mode;
+    private String calculateProperThumbnailSize(int width, int height) {
+        String properWidth = String.valueOf(width * 2 / 10);
+        String properHeight = String.valueOf(height * 2 / 10);
+        return "w" + properWidth + "-" + "h" + properHeight;
 
-        if (!mode)
+    }
+
+    public String replaceThumbnailSize(String string, String replacement) {
+        int pos = string.lastIndexOf("s220");
+        if (pos > -1) {
+            return string.substring(0, pos)
+                    + replacement
+                    + string.substring(pos + "s220".length(), string.length());
+        } else {
+            return string;
+        }
+    }
+
+    public void setSelectMode(boolean show) {
+        isCheckBoxShowing = show;
+
+        if (!show)
             clearCheckedItem();
 
         notifyDataSetChanged();
@@ -108,7 +129,7 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    allCheckboxShow = true;
+                    isCheckBoxShowing = true;
                     checkBox.setChecked(true);
                     notifyDataSetChanged();
                     modeChangeListener.onSelectChanged(true);

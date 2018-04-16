@@ -46,6 +46,7 @@ public class MainActivity extends AppCompatActivity
     private OnSelectModeClickListener onSelectModeClickListener;
     private LinearLayout bottomView;
     private boolean selectMode;
+    private MenuItem selectModeMenuItem;
 
     private View.OnClickListener drawerListener = new View.OnClickListener() {
         @Override
@@ -84,6 +85,7 @@ public class MainActivity extends AppCompatActivity
 
         bottomView.setVisibility(View.GONE);
         selectMode = false;
+        selectModeMenuItem.setVisible(true);
     }
 
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -219,18 +221,11 @@ public class MainActivity extends AppCompatActivity
         return true;
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            Toast.makeText(this, "Home Main", Toast.LENGTH_SHORT).show();
-        }
-
-        return false;
-    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
+        selectModeMenuItem = menu.findItem(R.id.toolbar_check_button);
         return true;
     }
 
@@ -251,6 +246,7 @@ public class MainActivity extends AppCompatActivity
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
         bottomView.setVisibility(View.VISIBLE);
         bottomView.startAnimation(slideUp);
+        selectModeMenuItem.setVisible(false);
         selectMode = true;
 
     }
