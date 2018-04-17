@@ -4,7 +4,7 @@ import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
 
-public class ImageMediaMetadata implements Serializable {
+public class MediaMetadata implements Serializable {
     @SerializedName("width")
     private int width;
     @SerializedName("height")

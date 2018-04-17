@@ -136,7 +136,7 @@ public class BackgroundUploadService extends Service {
 
         try (Cursor cursor = db.rawQuery(ContractDB.SQL_SELECT_ALL, null)) {
             while (cursor.moveToNext()) {
-                System.out.println("CURSOR " + cursor.getInt(0) + " Location : " + cursor.getString(1) + " STATUS : " + cursor.getString(2));
+                System.out.println("CURSOR " + cursor.getInt(0) + " Location : " + cursor.getString(1) + " STATUS : " + cursor.getString(2) + " DATE : " + cursor.getString(3));
             }
         }
     }
@@ -148,15 +148,6 @@ public class BackgroundUploadService extends Service {
         dbHelper.closeDB();
         handlerThread.quit();
         super.onDestroy();
-    }
-
-    private void persistAuthState(@NonNull Token token) {
-        Gson gson = new Gson();
-        String tokenJson = gson.toJson(token);
-
-        getSharedPreferences("TokenStatePreference", Context.MODE_PRIVATE).edit()
-                .putString("TOKEN_STATE", tokenJson)
-                .apply();
     }
 
     @Override

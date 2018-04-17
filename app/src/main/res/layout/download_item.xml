@@ -39,6 +39,20 @@
         android:layout_marginLeft="8dp"
         android:layout_marginTop="8dp"
         android:text="Date"
+        android:visibility="gone"
+        app:layout_constraintStart_toEndOf="@+id/download_thumbnail_imageview"
+        app:layout_constraintTop_toBottomOf="@+id/download_file_name_textview" />
+
+    <ProgressBar
+        android:id="@+id/download_progress_bar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginTop="8dp"
+        android:visibility="visible"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/download_thumbnail_imageview"
         app:layout_constraintTop_toBottomOf="@+id/download_file_name_textview" />
 </android.support.constraint.ConstraintLayout>

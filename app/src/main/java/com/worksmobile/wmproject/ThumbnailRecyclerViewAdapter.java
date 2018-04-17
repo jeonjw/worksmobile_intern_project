@@ -42,10 +42,13 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
 
         DriveFile file = fileList.get(position);
-        String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+        String thumbnailLink = null;
+        if (file.getThumbnailLink() != null)
+            thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
 
         GlideApp.with(holder.imageView)
                 .load(thumbnailLink)
+                .placeholder(R.drawable.android)
                 .centerCrop()
                 .into(holder.imageView);
 

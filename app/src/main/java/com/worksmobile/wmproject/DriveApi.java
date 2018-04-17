@@ -90,16 +90,6 @@ public interface DriveApi {
             @Path(value = "fileId") String fileId
     );
 
-//    /**
-//     * https://developers.google.com/drive/v3/web/multipart-upload
-//     */
-//    @POST("/upload/drive/v3/files?uploadType=multipart")
-//    @Multipart
-//    Call<UploadResult> uploadFile(
-//            @Header("Authorization") String authToken,
-//            @Part MultipartBody.Part metaPart,
-//            @Part MultipartBody.Part dataPart
-//    );
 
     @POST("/upload/drive/v3/files?uploadType=multipart")
     @Multipart

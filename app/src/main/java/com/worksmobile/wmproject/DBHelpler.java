@@ -5,6 +5,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.util.Date;
+
 
 public class DBHelpler extends SQLiteOpenHelper {
 
@@ -37,6 +39,16 @@ public class DBHelpler extends SQLiteOpenHelper {
 
     public void deleteDB(String where, String whereArgs) {
         writableDatabase.delete(ContractDB.TBL_CONTACT, where + "=?", new String[]{whereArgs});
+    }
+
+    public void insertDB(String location, String status) {
+
+        ContentValues values = new ContentValues();
+        values.put(ContractDB.COL_LOCATION, location);
+        values.put(ContractDB.COL_STATUS, status);
+        values.put(ContractDB.COL_DATE, new Date().toString());
+
+        writableDatabase.insert(ContractDB.TBL_CONTACT, null, values);
     }
 
     public void closeDB() {

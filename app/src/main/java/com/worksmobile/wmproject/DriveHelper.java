@@ -1,11 +1,14 @@
 package com.worksmobile.wmproject;
 
+import android.app.DownloadManager;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
@@ -43,10 +46,11 @@ import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_S
 
 public class DriveHelper {
 
+    private static final int UPDATE_PERCENT_THRESHOLD = 1;
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
-    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/imageMediaMetadata";
+    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/imageMediaMetadata, files/videoMediaMetadata";
 
     private String clientId;
     private String clientSecret;
@@ -212,14 +216,11 @@ public class DriveHelper {
         RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {
             @Override
             public void onUploadProgress(final int progressInPercent, final long totalBytes) {
-                System.out.println("Progress : " + progressInPercent);
                 if (progressInPercent == 100) {
                     System.out.println("Upload has finished!");
                     Message message = handler.obtainMessage(UPLOAD_SUCCESS, file.getAbsolutePath());
 
                     handler.sendMessageAtFrontOfQueue(message);
-                } else {
-                    System.out.println(String.format("%d percent of %d MB", progressInPercent, totalBytes / (1024 * 1024)));
                 }
             }
 
@@ -322,14 +323,29 @@ public class DriveHelper {
         });
     }
 
-    public void downloadFile(String fileId, File dstFile, final StateCallback callback) {
+    public Call<ResponseBody> createDownloadCall(String fileId) {
+        return driveApi.downloadFile(getAuthToken(), fileId);
+    }
+
+    public void downloadFile(String fileId, String fileName, final StateCallback callback) {
         Call<ResponseBody> call = driveApi.downloadFile(getAuthToken(), fileId);
         call.enqueue(new Callback<ResponseBody>() {
             @Override
             public void onResponse(@NonNull Call<ResponseBody> call, @NonNull Response<ResponseBody> response) {
                 String message = DriveUtils.printResponse("downloadFile", response);
                 if (response.isSuccessful()) {
-                    boolean writtenToDisk = writeResponseBodyToDisk(response.body());
+                    String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() + "/WorksDrive";
+
+                    File dir = new File(path);
+                    if (!dir.exists()) {
+                        dir.mkdirs();
+
+                    }
+                    File downloadedFile = new File(path, fileName);
+
+                    boolean writtenToDisk = writeResponseBodyToDisk(response.body(), fileName, downloadedFile, callback);
+                    if (writtenToDisk)
+                        callback.onSuccess(downloadedFile.getAbsolutePath());
                 } else {
                     if (callback != null) {
                         callback.onFailure(message);
@@ -347,27 +363,8 @@ public class DriveHelper {
         });
     }
 
-    public boolean isExternalStorageWritable() {
-        String state = Environment.getExternalStorageState();
-        if (Environment.MEDIA_MOUNTED.equals(state)) {
-            return true;
-        }
-        return false;
-    }
-
-    private boolean writeResponseBodyToDisk(ResponseBody body) {
-
-        System.out.println("WRITABLE : " + isExternalStorageWritable());
-
+    private boolean writeResponseBodyToDisk(ResponseBody body, String fileName, File destinationFile, StateCallback callback) {
         try {
-            // todo change the file location/name according to your needs
-            File downloadedFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), "test.jpeg");
-
-            if (downloadedFile.canWrite())
-                System.out.println("쓰기 가능");
-            else
-                System.out.println("쓰기 불가");
-
             InputStream inputStream = null;
             OutputStream outputStream = null;
 
@@ -375,26 +372,36 @@ public class DriveHelper {
                 byte[] fileReader = new byte[4096];
 
                 long fileSize = body.contentLength();
-                long fileSizeDownloaded = 0;
 
-                inputStream = body.byteStream();
-                outputStream = new FileOutputStream(downloadedFile);
+                inputStream = new BufferedInputStream(body.byteStream(), 4096);
+                outputStream = new FileOutputStream(destinationFile);
+
+                int readBuffer;
+                long fileSizeDownloadedInByte = 0;
+                int fileDownloadedInPercentage = 0;
 
                 while (true) {
-                    int read = inputStream.read(fileReader);
-
-                    if (read == -1) {
+                    readBuffer = inputStream.read(fileReader);
+                    if (readBuffer == -1) {
                         break;
                     }
+                    fileSizeDownloadedInByte += readBuffer;
+                    fileDownloadedInPercentage = (int) ((fileSizeDownloadedInByte * 100) / fileSize);
 
-                    outputStream.write(fileReader, 0, read);
+                    callback.onProgressUpdate(fileDownloadedInPercentage);
 
-                    fileSizeDownloaded += read;
-
-//                    Log.d("TEST", "file download: " + fileSizeDownloaded + " of " + fileSize);
+                    outputStream.write(fileReader, 0, readBuffer);
+                    Log.d("TEST", "file download: " + fileDownloadedInPercentage + " of " + 100);
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
 
                 outputStream.flush();
+                DownloadManager dm = (DownloadManager) context.getSystemService(Context.DOWNLOAD_SERVICE);
+                dm.addCompletedDownload(fileName, "WM_Project_Google_Drive", true, "image/jpeg", destinationFile.getAbsolutePath(), destinationFile.length(), false);
 
                 return true;
             } catch (IOException e) {
@@ -414,4 +421,5 @@ public class DriveHelper {
             return false;
         }
     }
+
 }

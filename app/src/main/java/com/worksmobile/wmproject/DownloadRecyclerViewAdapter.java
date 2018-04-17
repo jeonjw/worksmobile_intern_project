@@ -5,18 +5,19 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.worksmobile.wmproject.retrofit_object.DownloadItem;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 
 public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRecyclerViewAdapter.DownloadItemViewHolder> {
-    private List<DriveFile> downloadItemList;
+    private List<DownloadItem> downloadItemList;
 
-    public DownloadRecyclerViewAdapter(List<DriveFile> downloadItemList) {
+    public DownloadRecyclerViewAdapter(List<DownloadItem> downloadItemList) {
         this.downloadItemList = downloadItemList;
     }
 
@@ -29,23 +30,39 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
 
     @Override
     public void onBindViewHolder(DownloadItemViewHolder holder, int position) {
-        DriveFile file = downloadItemList.get(position);
-        String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+        DownloadItem file = downloadItemList.get(position);
+        String thumbnailLink = file.getImageLink();
+        if (file.getImageLink() != null && file.getWidth() != 0 && file.getHeight() != 0)
+            thumbnailLink = replaceThumbnailSize(file.getImageLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+
 
         GlideApp.with(holder.thumbnailImageView)
                 .load(thumbnailLink)
                 .centerCrop()
                 .into(holder.thumbnailImageView);
-        holder.fileNameTextView.setText(file.getName());
-        holder.dateTextView.setText(file.getCreatedTime().toString());
 
+        holder.fileNameTextView.setText(file.getFileName());
+        if (file.getProgress() < 100) {
+            holder.progressBar.setProgress(file.getProgress());
+        } else {
+            holder.progressBar.setVisibility(View.GONE);
+            holder.dateTextView.setVisibility(View.VISIBLE);
+            holder.dateTextView.setText(file.getDownlodDate());
+        }
     }
+
 
     private String calculateProperThumbnailSize(int width, int height) {
         String properWidth = String.valueOf(width * 2 / 10);
         String properHeight = String.valueOf(height * 2 / 10);
         return "w" + properWidth + "-" + "h" + properHeight;
 
+    }
+
+    public void progressUpdate(int updatePosition, int percentage) {
+        DownloadItem file = downloadItemList.get(updatePosition);
+        file.setProgress(percentage);
+        notifyItemChanged(updatePosition);
     }
 
     public String replaceThumbnailSize(String string, String replacement) {
@@ -68,6 +85,7 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
         private ImageView thumbnailImageView;
         private TextView fileNameTextView;
         private TextView dateTextView;
+        private ProgressBar progressBar;
 
         public DownloadItemViewHolder(View itemView) {
             super(itemView);
@@ -75,7 +93,9 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
             thumbnailImageView = itemView.findViewById(R.id.download_thumbnail_imageview);
             fileNameTextView = itemView.findViewById(R.id.download_file_name_textview);
             dateTextView = itemView.findViewById(R.id.download_date_text_view);
-
+            progressBar = itemView.findViewById(R.id.download_progress_bar);
         }
+
+
     }
 }

@@ -39,29 +39,58 @@ public class DriveFile implements Serializable {
     private String fileExtension;
     @SerializedName("size")
     private long size;
+    @SerializedName("imageMediaMetadata")
+    private MediaMetadata imageMediaMetadata;
+    @SerializedName("videoMediaMetadata")
+    private MediaMetadata videoMediaMetadata;
 
-    public ImageMediaMetadata getImageMediaMetadata() {
+    private int progress;
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
+    }
+
+    public MediaMetadata getImageMediaMetadata() {
         return imageMediaMetadata;
     }
 
+    public MediaMetadata getVideoMediaMetadata() {
+        return videoMediaMetadata;
+    }
+
+    public void setVideoMediaMetadata(MediaMetadata videoMediaMetadata) {
+        this.videoMediaMetadata = videoMediaMetadata;
+    }
+
     public int getWidth() {
-        return imageMediaMetadata.getWidth();
+        if (imageMediaMetadata == null)
+            return videoMediaMetadata.getWidth();
+        else
+
+            return imageMediaMetadata.getWidth();
     }
 
     public int getHeight() {
-        return imageMediaMetadata.getHeight();
+        if (imageMediaMetadata == null)
+            return videoMediaMetadata.getWidth();
+        else
+            return imageMediaMetadata.getHeight();
     }
 
-    public String getTakenTime () {
+    public String getTakenTime() {
+        if (imageMediaMetadata == null)
+            return null;
         return imageMediaMetadata.getTime();
     }
 
-    public void setImageMediaMetadata(ImageMediaMetadata imageMediaMetadata) {
+    public void setImageMediaMetadata(MediaMetadata imageMediaMetadata) {
         this.imageMediaMetadata = imageMediaMetadata;
     }
 
-    @SerializedName("imageMediaMetadata")
-    private ImageMediaMetadata imageMediaMetadata;
 
     private boolean isSelected;
 
@@ -203,7 +232,11 @@ public class DriveFile implements Serializable {
 
     @Override
     public String toString() {
-        return "DriveFile <" + "id = " + id +
-                ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
+        if (imageMediaMetadata == null)
+            return "DriveFile <" + "id = " + id +
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + videoMediaMetadata.toString() + '>';
+        else
+            return "DriveFile <" + "id = " + id +
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
     }
 }

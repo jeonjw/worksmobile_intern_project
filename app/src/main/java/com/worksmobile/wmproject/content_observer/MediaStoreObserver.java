@@ -1,7 +1,6 @@
 package com.worksmobile.wmproject.content_observer;
 
 
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
@@ -11,7 +10,6 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
 
-import com.worksmobile.wmproject.ContractDB;
 import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.MyBroadCastReceiver;
 
@@ -24,7 +22,7 @@ public class MediaStoreObserver extends ContentObserver {
     private DBHelpler dbHelper;
     private Handler handler;
     private static final int CALLBACK_PRESENT_INTEGER = 0;
-    private Runnable sendBroakdCastTask;
+    private Runnable broakdCastTask;
 
 
     public MediaStoreObserver(Handler handler, Context context, Uri contentUri) {
@@ -62,19 +60,27 @@ public class MediaStoreObserver extends ContentObserver {
         }
 
         if (storageCount > previousCount) {
-            System.out.println("Media 추가");
-            wirteToDatabase(getLastPictureLocation());
 
-            if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && sendBroakdCastTask != null) {
-                handler.removeCallbacks(sendBroakdCastTask);
+            if (isDownlodFileFromDrive(getLastPictureLocation())) {
+                return;
             }
 
-            sendBroakdCastTask = sendDriveBroadCast();
-            handler.postDelayed(sendBroakdCastTask, 3000);
+            System.out.println("Media 추가");
+            dbHelper.insertDB(getLastPictureLocation(), "UPLOAD");
+
+            if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && broakdCastTask != null) {
+                handler.removeCallbacks(broakdCastTask);
+            }
+
+            broakdCastTask = getBroadCastTask();
+            handler.postDelayed(broakdCastTask, 3000);
 
         }
-        System.out.println(" Observer : 스토리지 갯수 : " + storageCount);
         countCursor.close();
+    }
+
+    private boolean isDownlodFileFromDrive(String location) {
+        return location.contains("/storage/emulated/0/DCIM/WorksDrive/");
     }
 
 
@@ -90,17 +96,8 @@ public class MediaStoreObserver extends ContentObserver {
 
     }
 
-    private void wirteToDatabase(String uri) {
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-        ContentValues values = new ContentValues();
-        values.put(ContractDB.COL_LOCATION, uri);
-        values.put(ContractDB.COL_STATUS, "UPLOAD");
 
-        db.insert(ContractDB.TBL_CONTACT, null, values);
-        db.close();
-    }
-
-    private Runnable sendDriveBroadCast() {
+    private Runnable getBroadCastTask() {
         return new Runnable() {
             @Override
             public void run() {
@@ -122,8 +119,9 @@ public class MediaStoreObserver extends ContentObserver {
                 MediaStore.Images.ImageColumns.MIME_TYPE
         };
         final Cursor cursor = context.getContentResolver()
-                .query(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, projection, null,
-                        null, MediaStore.Images.ImageColumns.DATE_TAKEN + " DESC");
+                .query(EXTERNAL_CONTENT_URI, projection, null,
+                        null, "datetaken" + " DESC");
+
 
         if (cursor != null && cursor.moveToFirst()) {
             return cursor.getString(1);
