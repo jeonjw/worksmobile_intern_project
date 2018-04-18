@@ -29,14 +29,15 @@
 
         </menu>
     </item>
-    <item
-        android:id="@+id/toolbar_serach_button"
-        android:icon="@drawable/ic_search"
-        android:title="검색"
-        app:showAsAction="ifRoom" />
+
     <item
         android:id="@+id/toolbar_check_button"
         android:icon="@drawable/ic_checked"
         android:title="정렬"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/toolbar_select_all"
+        android:title="전체 선택"
+        android:visible="false"
         app:showAsAction="ifRoom" />
 </menu>

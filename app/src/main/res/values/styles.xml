@@ -13,11 +13,9 @@
         <item name="colorPrimaryDark">@color/colorNaverGreenDark</item>
     </style>
 
-    <style name="Theme.MyTheme.Black" parent="AppTheme">
-        <item name="colorPrimary">@color/colorDarkGray</item>
-        <item name="colorPrimaryDark">@color/colorDarkGrayDark</item>
-    </style>
 
-    <style name="LoginDialog" parent="Theme.AppCompat.Light.Dialog" />
+    <style name="AppTheme.ActionBar" parent="AppTheme">
+        <item name="actionMenuTextColor">@color/colorWhite</item>
+    </style>
 
 </resources>

@@ -31,8 +31,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Locale;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
@@ -42,6 +45,7 @@ public class DownloadActivity extends AppCompatActivity {
 
     public static final int READY = 300;
     public static final int DOWNLOAD_REQUEST = 301;
+    public static final int PROGRESS_UPDATE = 302;
 
     private DownloadRecyclerViewAdapter adapter;
     private Handler mainThreadHandler;
@@ -50,7 +54,7 @@ public class DownloadActivity extends AppCompatActivity {
     private DriveHelper driveHelper;
     private DBHelpler dbHelper;
     private ArrayList<DriveFile> downloadRequestList;
-    private ArrayList<DownloadItem> filelist;
+    private ArrayList<DownloadItem> fileList;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -65,15 +69,14 @@ public class DownloadActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_download);
 
-
         dbHelper = new DBHelpler(this);
         driveHelper = new DriveHelper(this);
-        filelist = new ArrayList<>();
+        fileList = new ArrayList<>();
 
         downloadRequestList = (ArrayList<DriveFile>) getIntent().getSerializableExtra("DOWNLOAD_LIST");
 
         for (DriveFile file : downloadRequestList) {
-            filelist.add(new DownloadItem(file.getName(), new Date().toString(), file.getThumbnailLink(), 0, file.getWidth(), file.getHeight()));
+            fileList.add(new DownloadItem(file.getName(), new Date().toString(), file.getThumbnailLink(), false, file.getWidth(), file.getHeight()));
         }
 
         createDownloadList();
@@ -89,7 +92,7 @@ public class DownloadActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.download_recyclerview);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new DownloadRecyclerViewAdapter(filelist);
+        adapter = new DownloadRecyclerViewAdapter(fileList);
         recyclerView.setAdapter(adapter);
 
         mainThreadHandler = new DownloadActivityHandler(this);
@@ -106,17 +109,13 @@ public class DownloadActivity extends AppCompatActivity {
                 String path = downloadCursor.getString(1);
                 String date = downloadCursor.getString(2);
 
-                System.out.println("PATH : " + path);
                 String fileName = path.substring(path.lastIndexOf("/") + 1);
 
-                filelist.add(new DownloadItem(fileName, date, path, 100, 0, 0));
+                fileList.add(new DownloadItem(fileName, date, path, true, 0, 0));
             } while (downloadCursor.moveToNext());
 
         }
-
         downloadCursor.close();
-
-
     }
 
     public void handleMessage(Message msg) {
@@ -124,12 +123,10 @@ public class DownloadActivity extends AppCompatActivity {
             case READY:
                 createDownloadRequest();
                 break;
-            case 555:
+            case PROGRESS_UPDATE:
                 int position = (int) msg.obj;
-                adapter.progressUpdate(position, msg.arg1);
+                adapter.notifyDownloadFinished(position);
                 break;
-
-
         }
     }
 
@@ -140,7 +137,6 @@ public class DownloadActivity extends AppCompatActivity {
     }
 
     class DownloadHandlerThread extends HandlerThread {
-
         private Handler handler;
 
         public DownloadHandlerThread(String name) {
@@ -160,7 +156,6 @@ public class DownloadActivity extends AppCompatActivity {
 
                     }
                 }
-
             };
             Message message = handler.obtainMessage(READY);
             mainThreadHandler.sendMessageAtFrontOfQueue(message);
@@ -186,8 +181,11 @@ public class DownloadActivity extends AppCompatActivity {
                     }
                     File downloadedFile = new File(path, file.getName());
 
-                    boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile, updateItemPosition);
+                    boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile);
                     if (writtenToDisk) {
+                        Message message = mainThreadHandler.obtainMessage(PROGRESS_UPDATE, updateItemPosition);
+                        mainThreadHandler.sendMessage(message);
+
                         dbHelper.insertDB(downloadedFile.getAbsolutePath(), "DOWNLOAD");
                         DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
                         dm.addCompletedDownload(file.getName(), "WM_Project_Google_Drive", true, "image/jpeg", downloadedFile.getAbsolutePath(), downloadedFile.length(), false);
@@ -199,26 +197,16 @@ public class DownloadActivity extends AppCompatActivity {
         }
 
 
-        private boolean writeResponseBodyToDisk(ResponseBody body, File destinationFile, int updateItemPosition) {
+        private boolean writeResponseBodyToDisk(ResponseBody body, File destinationFile) {
             try (InputStream inputStream = new BufferedInputStream(body.byteStream(), 4096);
                  OutputStream outputStream = new FileOutputStream(destinationFile)) {
                 byte[] fileReader = new byte[4096];
-                long fileSize = body.contentLength();
                 int readBuffer;
-                long fileSizeDownloadedInByte = 0;
-                int fileDownloadedInPercentage = 0;
-
                 while (true) {
                     readBuffer = inputStream.read(fileReader);
                     if (readBuffer == -1) {
                         break;
                     }
-                    fileSizeDownloadedInByte += readBuffer;
-                    fileDownloadedInPercentage = (int) ((fileSizeDownloadedInByte * 100) / fileSize);
-
-                    Message message = mainThreadHandler.obtainMessage(555, updateItemPosition);
-                    message.arg1 = fileDownloadedInPercentage;
-                    mainThreadHandler.sendMessage(message);
 
                     outputStream.write(fileReader, 0, readBuffer);
                 }

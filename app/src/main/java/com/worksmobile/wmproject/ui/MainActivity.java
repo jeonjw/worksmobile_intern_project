@@ -7,11 +7,16 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
@@ -30,15 +35,20 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.worksmobile.wmproject.DBHelpler;
+import com.worksmobile.wmproject.MyBroadCastReceiver;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
+import com.worksmobile.wmproject.util.FileUtils;
 
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
-    private static final int READ_EXTERNAL_STORAGE_PERMISSION = 777;
+    private static final int EXTERNAL_STORAGE_PERMISSION_CODE = 777;
+    private static final int FILE_SELECT_CODE = 888;
+
     private DrawerLayout drawerLayout;
     private Toolbar toolbar;
     private TextView toolbarTextView;
@@ -47,6 +57,8 @@ public class MainActivity extends AppCompatActivity
     private LinearLayout bottomView;
     private boolean selectMode;
     private MenuItem selectModeMenuItem;
+    private MenuItem selectAllMenuItem;
+    private FloatingActionButton floatingActionButton;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -80,7 +92,6 @@ public class MainActivity extends AppCompatActivity
         if (onSelectModeClickListener != null)
             onSelectModeClickListener.onCancel();
 
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             Window window = getWindow();
             window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
@@ -88,9 +99,11 @@ public class MainActivity extends AppCompatActivity
             window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
         }
 
-        bottomView.setVisibility(View.GONE);
         selectMode = false;
         selectModeMenuItem.setVisible(true);
+        selectAllMenuItem.setVisible(false);
+        bottomView.setVisibility(View.GONE);
+        floatingActionButton.setVisibility(View.VISIBLE);
     }
 
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -103,6 +116,13 @@ public class MainActivity extends AppCompatActivity
         toolbar = findViewById(R.id.main_toolbar);
         drawerLayout = findViewById(R.id.drawer_layout);
         bottomView = findViewById(R.id.bottom_view);
+        floatingActionButton = findViewById(R.id.upload_floating_button);
+        floatingActionButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                showFileChooser();
+            }
+        });
 
         bottomView.findViewById(R.id.bottom_download_button).setOnClickListener(new View.OnClickListener() {
             @Override
@@ -128,13 +148,22 @@ public class MainActivity extends AppCompatActivity
 
     }
 
+    private void showFileChooser() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("*/*");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+
+        startActivityForResult(Intent.createChooser(intent, "Select a File to Upload"), FILE_SELECT_CODE);
+
+    }
+
     private void initDrawerToggle() {
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
         toolbarTextView = toolbar.findViewById(R.id.toolbar_text_view);
-        toolbarTextView.setText("모든 사진");
+        toolbarTextView.setText(R.string.all_photo);
 
         toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.drawer_start, R.string.drawer_end);
         drawerLayout.addDrawerListener(toggle);
@@ -173,23 +202,10 @@ public class MainActivity extends AppCompatActivity
 
     private void checkPermission() {
         if (!hasPermissions(PERMISSIONS)) {
-            ActivityCompat.requestPermissions(this, PERMISSIONS, READ_EXTERNAL_STORAGE_PERMISSION);
+            ActivityCompat.requestPermissions(this, PERMISSIONS, EXTERNAL_STORAGE_PERMISSION_CODE);
         } else {
             setJobSchedule();
         }
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-//            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-//                setJobSchedule();
-//            } else {
-//                if (shouldShowRequestPermissionRationale(Manifest.permission.READ_EXTERNAL_STORAGE)) {
-//                    Toast.makeText(this, "권한 허용", Toast.LENGTH_SHORT).show();
-//                }
-//                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, READ_EXTERNAL_STORAGE_PERMISSION);
-//            }
-//
-//        } else {
-//            setJobSchedule();
-//        }
     }
 
     public boolean hasPermissions(String... permissions) {
@@ -206,7 +222,7 @@ public class MainActivity extends AppCompatActivity
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         switch (requestCode) {
-            case READ_EXTERNAL_STORAGE_PERMISSION:
+            case EXTERNAL_STORAGE_PERMISSION_CODE:
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     setJobSchedule();
                 }
@@ -217,43 +233,82 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch (requestCode) {
+            case FILE_SELECT_CODE:
+                if (resultCode == RESULT_OK) {
+                    Uri uri = data.getData();
+                    String path = FileUtils.getPath(this, uri);
+                    DBHelpler dbHelpler = new DBHelpler(this);
+                    if (path != null) {
+                        Toast.makeText(this, "업로드 요청 완료", Toast.LENGTH_SHORT).show();
+                        dbHelpler.insertDB(path, "UPLOAD");
+                        sendNewMediaBroadCast();
+                    } else {
+                        Snackbar.make(bottomView, "가져올 수 없는 파일 입니다.", Snackbar.LENGTH_SHORT).show();
+                    }
+                }
+                break;
+        }
+    }
 
+    private void sendNewMediaBroadCast() {
+        Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
+        intent.setClass(this, MyBroadCastReceiver.class);
+        sendBroadcast(intent);
+    }
+
+    @Override
+    public boolean onNavigationItemSelected(@NonNull MenuItem item) {
         int id = item.getItemId();
+        Fragment fragment = null;
         switch (id) {
             case R.id.nav_photo:
-                Toast.makeText(MainActivity.this, item.getTitle(), Toast.LENGTH_SHORT).show();
+                fragment = new PhotoFragment();
+                toolbarTextView.setText(R.string.all_photo);
                 break;
 
             case R.id.nav_video:
-                Toast.makeText(MainActivity.this, item.getTitle(), Toast.LENGTH_SHORT).show();
+                fragment = new VideoFragment();
+                toolbarTextView.setText(R.string.all_video);
                 break;
 
             case R.id.nav_document:
-                Toast.makeText(MainActivity.this, item.getTitle(), Toast.LENGTH_SHORT).show();
+                fragment = new EtcFileFragment();
+                toolbarTextView.setText("기타 파일");
                 break;
 
-            case R.id.nav_folder:
-                Toast.makeText(MainActivity.this, item.getTitle(), Toast.LENGTH_SHORT).show();
+            case R.id.nav_trash:
+                fragment = new TrashFragment();
+                toolbarTextView.setText(R.string.trash_can);
                 break;
 
+        }
+
+        drawerLayout.closeDrawer(GravityCompat.START);
+        if (fragment != null) {
+            onSelectModeClickListener = (BaseFragment) fragment;
+            getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).addToBackStack(null).commit();
         }
 
         return true;
     }
 
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
         selectModeMenuItem = menu.findItem(R.id.toolbar_check_button);
+        selectAllMenuItem = menu.findItem(R.id.toolbar_select_all);
         return true;
     }
 
     public void changeToolbarSelectMode() {
+        if (selectMode)
+            return;
+
         toggle.setHomeAsUpIndicator(R.drawable.ic_close);
         toolbar.setNavigationOnClickListener(selectModeCloseListener);
-        toolbarTextView.setText("사진을 선택하세요");
+        toolbarTextView.setText(R.string.choose_photo);
 
         toolbar.setBackgroundColor(getResources().getColor(R.color.colorDarkGray));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -263,11 +318,12 @@ public class MainActivity extends AppCompatActivity
             window.setStatusBarColor(getResources().getColor(R.color.colorDarkGrayDark));
         }
 
-
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
         bottomView.setVisibility(View.VISIBLE);
         bottomView.startAnimation(slideUp);
         selectModeMenuItem.setVisible(false);
+        selectAllMenuItem.setVisible(true);
+        floatingActionButton.setVisibility(View.GONE);
         selectMode = true;
 
     }

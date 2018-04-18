@@ -22,19 +22,19 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     private View.OnClickListener itemClickListener;
     private OnModeChangeListener modeChangeListener;
     private boolean isCheckBoxShowing;
+    private boolean selectAll;
 
     public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
         this.fileList = thumbnailLinkList;
         this.itemClickListener = clickListener;
         this.modeChangeListener = modeChangeListener;
         checkedItems = new HashSet<>();
+
     }
 
     @Override
     public ThumbnailViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.thumbnail_item, parent, false);
-        view.setOnClickListener(itemClickListener);
-
         return new ThumbnailViewHolder(view);
     }
 
@@ -42,13 +42,13 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
 
         DriveFile file = fileList.get(position);
-        String thumbnailLink = null;
-        if (file.getThumbnailLink() != null)
+        String mimeType = file.getMimeType();
+        String thumbnailLink = file.getThumbnailLink();
+        if (mimeType.contains("image") || mimeType.contains("video") && file.getThumbnailLink() != null)
             thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
 
         GlideApp.with(holder.imageView)
                 .load(thumbnailLink)
-                .placeholder(R.drawable.android)
                 .centerCrop()
                 .into(holder.imageView);
 
@@ -61,6 +61,11 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         } else {
             holder.checkBox.setVisibility(View.INVISIBLE);
         }
+    }
+
+    @Override
+    public int getItemCount() {
+        return fileList.size();
     }
 
     private String calculateProperThumbnailSize(int width, int height) {
@@ -103,10 +108,32 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         return checkedFileList;
     }
 
-    @Override
-    public int getItemCount() {
-        return fileList.size();
+    public void selectItem(int position) {
+        if (checkedItems.contains(position))
+            checkedItems.remove(position);
+        else
+            checkedItems.add(position);
+
+        notifyItemChanged(position);
     }
+
+    public void checkAllItems() {
+        selectAll ^= true;
+        if (selectAll) {
+            for (int i = 0; i < fileList.size(); i++) {
+                checkedItems.add(i);
+            }
+        } else {
+            checkedItems.clear();
+        }
+        notifyDataSetChanged();
+    }
+
+    public void setItemClickListener(View.OnClickListener itemClickListener) {
+        this.itemClickListener = itemClickListener;
+        notifyDataSetChanged();
+    }
+
 
     class ThumbnailViewHolder extends RecyclerView.ViewHolder {
 
@@ -128,14 +155,18 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
                     }
                 }
             });
-
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    itemClickListener.onClick(view);
+                }
+            });
             itemView.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    isCheckBoxShowing = true;
                     checkBox.setChecked(true);
                     notifyDataSetChanged();
-                    modeChangeListener.onSelectChanged(true);
+                    modeChangeListener.onChanged();
                     return true;
                 }
             });

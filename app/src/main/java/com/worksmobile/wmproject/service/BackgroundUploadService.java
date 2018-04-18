@@ -4,7 +4,6 @@ import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -13,19 +12,15 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 
-import com.google.gson.Gson;
 import com.worksmobile.wmproject.ContractDB;
 import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DriveHelper;
-import com.worksmobile.wmproject.DriveUtils;
+import com.worksmobile.wmproject.util.DriveUtils;
 import com.worksmobile.wmproject.ui.MainActivity;
 import com.worksmobile.wmproject.BackgroundServiceHandler;
 import com.worksmobile.wmproject.R;
-import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 
 import java.io.IOException;

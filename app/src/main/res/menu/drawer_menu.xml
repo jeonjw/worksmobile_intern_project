@@ -9,10 +9,10 @@
         android:title="동영상" />
     <item
         android:id="@+id/nav_document"
-        android:title="문서" />
+        android:title="기타" />
     <item
-        android:id="@+id/nav_folder"
-        android:title="폴더" />
+        android:id="@+id/nav_trash"
+        android:title="휴지통" />
 
 
 

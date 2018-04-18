@@ -22,7 +22,6 @@ public class ContractDB {
     public static final String SQL_SELECT_ALL = "SELECT * FROM " + TBL_CONTACT;
     public static final String SQL_SELECT_UPLOAD = "SELECT " + COL_ID + ", " + COL_LOCATION + ", " + COL_DATE + " FROM " + TBL_CONTACT + " WHERE STATUS='UPLOAD'";
     public static final String SQL_SELECT_DOWNLOAD = "SELECT " + COL_ID + ", " + COL_LOCATION + ", " + COL_DATE + " FROM " + TBL_CONTACT + " WHERE STATUS='DOWNLOAD'";
-//    public static final String SQL_SELECT_UPLOAD = "SELECT * FROM " + TBL_CONTACT + " WHERE STATUS='UPLOAD'";
 
     public static final String SQL_DELETE = "DELETE FROM " + TBL_CONTACT;
 

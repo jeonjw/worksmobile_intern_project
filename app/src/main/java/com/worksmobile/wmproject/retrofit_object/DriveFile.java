@@ -232,11 +232,14 @@ public class DriveFile implements Serializable {
 
     @Override
     public String toString() {
-        if (imageMediaMetadata == null)
+        if (imageMediaMetadata == null && videoMediaMetadata != null)
             return "DriveFile <" + "id = " + id +
                     ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + videoMediaMetadata.toString() + '>';
-        else
+        else if (imageMediaMetadata != null && videoMediaMetadata == null)
             return "DriveFile <" + "id = " + id +
                     ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
+        else
+            return "DriveFile <" + "id = " + id +
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + '>';
     }
 }

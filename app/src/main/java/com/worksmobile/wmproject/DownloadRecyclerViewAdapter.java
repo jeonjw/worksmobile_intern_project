@@ -11,7 +11,11 @@ import android.widget.TextView;
 import com.worksmobile.wmproject.retrofit_object.DownloadItem;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 
 public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRecyclerViewAdapter.DownloadItemViewHolder> {
@@ -42,12 +46,15 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
                 .into(holder.thumbnailImageView);
 
         holder.fileNameTextView.setText(file.getFileName());
-        if (file.getProgress() < 100) {
-            holder.progressBar.setProgress(file.getProgress());
-        } else {
+        if (file.isFinished()) {
             holder.progressBar.setVisibility(View.GONE);
             holder.dateTextView.setVisibility(View.VISIBLE);
-            holder.dateTextView.setText(file.getDownlodDate());
+
+            DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+            Date nowDate = new Date();
+            String tempDate = sdFormat.format(nowDate);
+
+            holder.dateTextView.setText(tempDate);
         }
     }
 
@@ -59,9 +66,9 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
 
     }
 
-    public void progressUpdate(int updatePosition, int percentage) {
+    public void notifyDownloadFinished(int updatePosition) {
         DownloadItem file = downloadItemList.get(updatePosition);
-        file.setProgress(percentage);
+        file.setFinished(true);
         notifyItemChanged(updatePosition);
     }
 

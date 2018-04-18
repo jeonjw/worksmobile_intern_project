@@ -3,8 +3,9 @@ package com.worksmobile.wmproject.ui;
 import android.content.Intent;
 import android.view.View;
 
-public class PhotoFragment extends BaseFragment {
-    private static final String MIME_TYPE = "image/";
+
+public class VideoFragment extends BaseFragment {
+    private static final String MIME_TYPE = "video/";
 
     @Override
     public String getMimeType() {
@@ -23,11 +24,12 @@ public class PhotoFragment extends BaseFragment {
             @Override
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
-                Intent intent = new Intent(getContext(), ImageViewerActivity.class);
-                intent.putExtra("FILE_LIST", fileList);
-                intent.putExtra("VIEWER_POSITION", itemPosition);
+                Intent intent = new Intent(getContext(), VideoViewerActivity.class);
+                intent.putExtra("FILE_NAME", fileList.get(itemPosition).getName());
                 startActivity(intent);
             }
         };
     }
+
+
 }

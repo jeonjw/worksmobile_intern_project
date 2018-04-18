@@ -10,6 +10,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
 
+import com.worksmobile.wmproject.ContractDB;
 import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.MyBroadCastReceiver;
 

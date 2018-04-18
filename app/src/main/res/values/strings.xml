@@ -11,4 +11,8 @@
     <string name="sorting_taken_older">촬영일 - 오래된 항목 우선</string>
     <string name="sorting_upload_newly">업로드일 - 최신 항목 우선</string>
     <string name="sorting_upload_older">업로드일 - 오래된 항목 우선</string>
+    <string name="choose_photo">사진을 선택하세요</string>
+    <string name="all_photo">모든 사진</string>
+    <string name="all_video">모든 영상</string>
+    <string name="trash_can">휴지통</string>
 </resources>

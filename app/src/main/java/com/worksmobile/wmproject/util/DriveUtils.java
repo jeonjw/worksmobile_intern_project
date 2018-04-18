@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject;
+package com.worksmobile.wmproject.util;
 
 import android.util.Log;
 

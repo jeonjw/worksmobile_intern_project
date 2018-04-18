@@ -5,7 +5,10 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Date;
+import java.util.Locale;
 
 
 public class DBHelpler extends SQLiteOpenHelper {
@@ -46,7 +49,12 @@ public class DBHelpler extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(ContractDB.COL_LOCATION, location);
         values.put(ContractDB.COL_STATUS, status);
-        values.put(ContractDB.COL_DATE, new Date().toString());
+
+        DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+        Date nowDate = new Date();
+        String tempDate = sdFormat.format(nowDate);
+
+        values.put(ContractDB.COL_DATE, tempDate);
 
         writableDatabase.insert(ContractDB.TBL_CONTACT, null, values);
     }
