@@ -50,11 +50,7 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
             holder.progressBar.setVisibility(View.GONE);
             holder.dateTextView.setVisibility(View.VISIBLE);
 
-            DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
-            Date nowDate = new Date();
-            String tempDate = sdFormat.format(nowDate);
-
-            holder.dateTextView.setText(tempDate);
+            holder.dateTextView.setText(file.getDownlodDate());
         }
     }
 

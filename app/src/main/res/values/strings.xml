@@ -15,4 +15,5 @@
     <string name="all_photo">모든 사진</string>
     <string name="all_video">모든 영상</string>
     <string name="trash_can">휴지통</string>
+    <string name="etc_file">기타 파일</string>
 </resources>

@@ -7,11 +7,9 @@ import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -59,6 +57,7 @@ public class MainActivity extends AppCompatActivity
     private MenuItem selectModeMenuItem;
     private MenuItem selectAllMenuItem;
     private FloatingActionButton floatingActionButton;
+    private String currentToolbarTitle;
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -87,7 +86,7 @@ public class MainActivity extends AppCompatActivity
         toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
         toolbar.setNavigationOnClickListener(drawerListener);
         toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
-        toolbarTextView.setText("모든 사진");
+        toolbarTextView.setText(currentToolbarTitle);
 
         if (onSelectModeClickListener != null)
             onSelectModeClickListener.onCancel();
@@ -265,22 +264,26 @@ public class MainActivity extends AppCompatActivity
         switch (id) {
             case R.id.nav_photo:
                 fragment = new PhotoFragment();
-                toolbarTextView.setText(R.string.all_photo);
+                currentToolbarTitle = getString(R.string.all_photo);
+                toolbarTextView.setText(currentToolbarTitle);
                 break;
 
             case R.id.nav_video:
                 fragment = new VideoFragment();
-                toolbarTextView.setText(R.string.all_video);
+                currentToolbarTitle = getString(R.string.all_video);
+                toolbarTextView.setText(currentToolbarTitle);
                 break;
 
             case R.id.nav_document:
                 fragment = new EtcFileFragment();
-                toolbarTextView.setText("기타 파일");
+                currentToolbarTitle = getString(R.string.etc_file);
+                toolbarTextView.setText(currentToolbarTitle);
                 break;
 
             case R.id.nav_trash:
                 fragment = new TrashFragment();
-                toolbarTextView.setText(R.string.trash_can);
+                currentToolbarTitle = getString(R.string.trash_can);
+                toolbarTextView.setText(currentToolbarTitle);
                 break;
 
         }

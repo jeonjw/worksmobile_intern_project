@@ -240,6 +240,6 @@ public class DriveFile implements Serializable {
                     ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
         else
             return "DriveFile <" + "id = " + id +
-                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + '>';
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + '>';
     }
 }

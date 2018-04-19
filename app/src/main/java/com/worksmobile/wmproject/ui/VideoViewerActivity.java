@@ -25,6 +25,7 @@ public class VideoViewerActivity extends AppCompatActivity {
         String fileName = getIntent().getStringExtra("FILE_NAME");
 
         String path = getDownlodedFilePath(fileName);
+        System.out.println("PATH : " + path);
         File file = null;
         if (path != null)
             file = new File(path);
@@ -32,20 +33,26 @@ public class VideoViewerActivity extends AppCompatActivity {
             videoView.setVideoPath(path);
             videoView.start();
         } else {
-            Toast.makeText(this, "파일을 다운받으셔야 합니다.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "파일을 다운받으셔야 합니다. " + fileName, Toast.LENGTH_SHORT).show();
             finish();
         }
     }
 
     private String getDownlodedFilePath(String fileName) {
         String path = null;
+
         SQLiteDatabase db = dbHelper.getReadableDatabase();
-        String SQL_SELECT_DOWNLOAD = "SELECT LOCATION, STATUS FROM UPLOAD_TABLE WHERE (STATUS='DOWNLOAD' OR STATUS='UPLOAD') AND LOCATION LIKE " + "'%" + fileName + "%'";
+        String SQL_SELECT_DOWNLOAD = "SELECT LOCATION, STATUS FROM UPLOAD_TABLE WHERE (STATUS='DOWNLOAD' OR STATUS='UPLOADED') AND LOCATION LIKE " + "'%" + fileName + "%'";
 
         Cursor downloadCursor = db.rawQuery(SQL_SELECT_DOWNLOAD, null);
         System.out.println("COUNT : " + downloadCursor.getCount());
-        if (downloadCursor.moveToFirst()) {
-            path = downloadCursor.getString(0);
+
+        for (downloadCursor.moveToFirst(); !downloadCursor.isAfterLast(); downloadCursor.moveToNext()) {
+            File file = new File(downloadCursor.getString(0));
+            if (file.exists()) {
+                path = downloadCursor.getString(0);
+                break;
+            }
         }
 
         downloadCursor.close();

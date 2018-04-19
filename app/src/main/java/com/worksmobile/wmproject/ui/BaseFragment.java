@@ -42,8 +42,8 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     protected ArrayList<DriveFile> fileList;
 
     private SwipeRefreshLayout swipeContainer;
-    private DriveHelper driveHelper;
-    private ThumbnailRecyclerViewAdapter adapter;
+    protected DriveHelper driveHelper;
+    protected ThumbnailRecyclerViewAdapter adapter;
     private View.OnClickListener selectModeClickListener;
     private OnModeChangeListener modeChangeListener;
     private int currentSortingCriteria;
@@ -153,6 +153,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         driveHelper.enqueueListCreationCall(isTrashFragment(), getMimeType(), new ListCallback() {
             @Override
             public void onSuccess(DriveFile[] driveFiles) {
+                adapter.clearCheckedItem();
                 fileList.clear();
                 fileList.addAll(Arrays.asList(driveFiles));
                 sorting(currentSortingCriteria);
@@ -234,12 +235,12 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 
     @Override
     public void onDelete() {
-        createAlertDialog(DELETE, adapter.getCheckedFileList().size());
+        createAlertDialog(adapter.getCheckedFileList().size());
     }
 
     public void requestDelete() {
         for (DriveFile file : adapter.getCheckedFileList()) {
-            driveHelper.enqueueFileDeleteCall(file.getId(), new StateCallback() {
+            driveHelper.enqueueDeleteCall(file.getId(), new StateCallback() {
                 @Override
                 public void onSuccess(String msg) {
                     if (msg == null) {
@@ -259,7 +260,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         adapter.clearCheckedItem();
     }
 
-    private void createAlertDialog(int command, int count) {
+    private void createAlertDialog(int count) {
         String deleteMessage = String.format(Locale.KOREA, "%d개의 항목을 삭제하시겠습니까?\n삭제된 항목은 휴지통으로 이동합니다.", count);
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getContext());
         alertDialogBuilder.setTitle("삭제하기")
@@ -268,15 +269,13 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 .setPositiveButton("아니오",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-
                                 dialog.cancel();
                             }
                         })
                 .setNegativeButton("예",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                if (command == DELETE)
-                                    requestDelete();
+                                requestDelete();
                                 dialog.cancel();
                             }
                         });

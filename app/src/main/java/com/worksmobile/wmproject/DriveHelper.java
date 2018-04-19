@@ -9,6 +9,7 @@ import android.text.TextUtils;
 import android.webkit.MimeTypeMap;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
@@ -144,12 +145,12 @@ public class DriveHelper {
         });
     }
 
-    public void enqueueFileDeleteCall(String fileId, final StateCallback callback) {
+    public void enqueuePermanentDeleteCall(String fileId, final StateCallback callback) {
         Call<Void> call = driveApi.deleteFile(getAuthToken(), fileId);
         call.enqueue(new Callback<Void>() {
             @Override
             public void onResponse(@NonNull Call<Void> call, @NonNull Response<Void> response) {
-                String message = DriveUtils.printResponse("enqueueFileDeleteCall", response);
+                String message = DriveUtils.printResponse("enqueuePermanentDeleteCall", response);
                 if (message == SUCCESS) {
                     if (callback != null) {
                         callback.onSuccess(null);
@@ -163,13 +164,45 @@ public class DriveHelper {
 
             @Override
             public void onFailure(@NonNull Call<Void> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("enqueueFileDeleteCall", t);
+                String message = DriveUtils.printFailure("enqueuePermanentDeleteCall", t);
                 if (callback != null) {
                     callback.onFailure(message);
                 }
             }
         });
     }
+
+    public void enqueueDeleteCall(String fileId, final StateCallback callback) {
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("trashed", true);
+        RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
+
+        Call<DriveFile> call = driveApi.updateFile(getAuthToken(), fileId, body);
+        call.enqueue(new Callback<DriveFile>() {
+            @Override
+            public void onResponse(@NonNull Call<DriveFile> call, @NonNull Response<DriveFile> response) {
+                String message = DriveUtils.printResponse("enqueuePermanentDeleteCall", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(null);
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<DriveFile> call, @NonNull Throwable t) {
+                String message = DriveUtils.printFailure("enqueuePermanentDeleteCall", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
 
     public Call<Token> createTokenRefeshCall() {
         checkRefreshToken();

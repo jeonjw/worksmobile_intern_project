@@ -10,6 +10,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.DELETE;
 import retrofit2.http.Field;
 import retrofit2.http.FormUrlEncoded;
@@ -102,12 +103,18 @@ public interface DriveApi {
     /**
      * https://developers.google.com/drive/v3/reference/files/update
      */
+//    @PATCH("/drive/v3/files/{fileId}")
+//    Call<DriveFile> updateFile(
+//            @Header("Authorization") String authToken,
+//            @Path(value = "fileId") String fileId,
+//            @Query("addParents") String addParents,
+//            @Query("removeParents") String removeParents
+//    );
     @PATCH("/drive/v3/files/{fileId}")
-    Call<DriveFile> moveFile(
+    Call<DriveFile> updateFile(
             @Header("Authorization") String authToken,
             @Path(value = "fileId") String fileId,
-            @Query("addParents") String addParents,
-            @Query("removeParents") String removeParents
+            @Body RequestBody dataPart
     );
 
     /**

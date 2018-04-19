@@ -62,11 +62,11 @@ public class MediaStoreObserver extends ContentObserver {
 
         if (storageCount > previousCount) {
 
+            System.out.println("Media 추가");
             if (isDownlodFileFromDrive(getLastPictureLocation())) {
                 return;
             }
 
-            System.out.println("Media 추가");
             dbHelper.insertDB(getLastPictureLocation(), "UPLOAD");
 
             if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && broakdCastTask != null) {
@@ -116,15 +116,16 @@ public class MediaStoreObserver extends ContentObserver {
                 MediaStore.Images.ImageColumns._ID,
                 MediaStore.Images.ImageColumns.DATA,
                 MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
-                MediaStore.Images.ImageColumns.DATE_TAKEN,
+                MediaStore.Images.ImageColumns.DATE_ADDED,
                 MediaStore.Images.ImageColumns.MIME_TYPE
         };
         final Cursor cursor = context.getContentResolver()
                 .query(EXTERNAL_CONTENT_URI, projection, null,
-                        null, "datetaken" + " DESC");
+                        null, "date_added" + " DESC");
 
 
         if (cursor != null && cursor.moveToFirst()) {
+            System.out.println("TEMP: " + cursor.getString(1));
             return cursor.getString(1);
         }
 

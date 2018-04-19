@@ -54,7 +54,7 @@ public class DownloadActivity extends AppCompatActivity {
     private DriveHelper driveHelper;
     private DBHelpler dbHelper;
     private ArrayList<DriveFile> downloadRequestList;
-    private ArrayList<DownloadItem> fileList;
+    private ArrayList<DownloadItem> downloadFinishItemList;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -71,15 +71,17 @@ public class DownloadActivity extends AppCompatActivity {
 
         dbHelper = new DBHelpler(this);
         driveHelper = new DriveHelper(this);
-        fileList = new ArrayList<>();
+        downloadFinishItemList = new ArrayList<>();
 
         downloadRequestList = (ArrayList<DriveFile>) getIntent().getSerializableExtra("DOWNLOAD_LIST");
 
-        for (DriveFile file : downloadRequestList) {
-            fileList.add(new DownloadItem(file.getName(), new Date().toString(), file.getThumbnailLink(), false, file.getWidth(), file.getHeight()));
-        }
 
         createDownloadList();
+        DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+
+        for (DriveFile file : downloadRequestList) {
+            downloadFinishItemList.add(0, new DownloadItem(file.getName(), sdFormat.format(new Date()), file.getThumbnailLink(), false, file.getWidth(), file.getHeight()));
+        }
 
         Toolbar toolbar = findViewById(R.id.download_activity_toolbar);
         setSupportActionBar(toolbar);
@@ -92,7 +94,7 @@ public class DownloadActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = findViewById(R.id.download_recyclerview);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new DownloadRecyclerViewAdapter(fileList);
+        adapter = new DownloadRecyclerViewAdapter(downloadFinishItemList);
         recyclerView.setAdapter(adapter);
 
         mainThreadHandler = new DownloadActivityHandler(this);
@@ -111,7 +113,7 @@ public class DownloadActivity extends AppCompatActivity {
 
                 String fileName = path.substring(path.lastIndexOf("/") + 1);
 
-                fileList.add(new DownloadItem(fileName, date, path, true, 0, 0));
+                downloadFinishItemList.add(0, new DownloadItem(fileName, date, path, true, 0, 0));
             } while (downloadCursor.moveToNext());
 
         }
@@ -177,8 +179,8 @@ public class DownloadActivity extends AppCompatActivity {
                     File dir = new File(path);
                     if (!dir.exists()) {
                         dir.mkdirs();
-
                     }
+
                     File downloadedFile = new File(path, file.getName());
 
                     boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile);
