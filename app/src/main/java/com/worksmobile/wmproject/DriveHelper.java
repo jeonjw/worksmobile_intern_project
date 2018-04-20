@@ -18,6 +18,7 @@ import com.worksmobile.wmproject.retrofit_object.DriveFiles;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 import com.worksmobile.wmproject.util.DriveUtils;
+import com.worksmobile.wmproject.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -41,7 +42,7 @@ public class DriveHelper {
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
-    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/imageMediaMetadata, files/videoMediaMetadata";
+    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/size, files/imageMediaMetadata, files/videoMediaMetadata";
 
     private String clientId;
     private String clientSecret;
@@ -91,13 +92,16 @@ public class DriveHelper {
 
     private void executeTokenRefresh() {
         System.out.println("TOKEN 갱신 진행");
+
         new Thread(new Runnable() {
             @Override
             public void run() {
                 Call<Token> call = createTokenRefeshCall();
                 try {
                     Response<Token> response = call.execute();
-
+                    synchronized (DriveHelper.this) {
+                        DriveHelper.this.notify();
+                    }
                     String message = DriveUtils.printResponse("refreshToken", response);
                     if (message == "SUCCESS") {
                         Token refreshTtoken = response.body();
@@ -112,6 +116,15 @@ public class DriveHelper {
                 }
             }
         }).start();
+
+        synchronized (this) {
+            try {
+                wait();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
+
     }
 
     public void enqueueToeknRequestCall(final TokenCallback callback, String mAuthCode) {
@@ -211,6 +224,7 @@ public class DriveHelper {
 
     public Call<UploadResult> createUploadCall(String imageLocation, Handler handler) {
         File srcFile = new File(imageLocation);
+        System.out.println("UPLOAD HASH : " + srcFile.hashCode());
         if (!srcFile.exists())
             return null;
 
@@ -230,7 +244,7 @@ public class DriveHelper {
 
     @NonNull
     private MultipartBody.Part prepareFilePart(File file, Handler handler) {
-        String mimeType = getMimeType(file);
+        String mimeType = FileUtils.getMimeType(file);
 
         RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {
             @Override
@@ -269,20 +283,6 @@ public class DriveHelper {
         }
     }
 
-    public String getExtension(String fileName) {
-        String lowerName = fileName.toLowerCase();
-        if (!lowerName.contains("."))
-            return "";
-        return lowerName.substring(lowerName.lastIndexOf(".") + 1);
-    }
-
-    public String getMimeType(File file) {
-        MimeTypeMap map = MimeTypeMap.getSingleton();
-        String mimeType = map.getMimeTypeFromExtension(getExtension(file.getName()));
-        if (TextUtils.isEmpty(mimeType))
-            return "*/*";
-        return mimeType;
-    }
 
     public void enqueueListCreationCall(boolean trash, String mimeType, final ListCallback callback) {
         String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(trash);

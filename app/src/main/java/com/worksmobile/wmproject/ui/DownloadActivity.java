@@ -24,6 +24,7 @@ import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.retrofit_object.DownloadItem;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.util.FileUtils;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -31,6 +32,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -75,12 +79,11 @@ public class DownloadActivity extends AppCompatActivity {
 
         downloadRequestList = (ArrayList<DriveFile>) getIntent().getSerializableExtra("DOWNLOAD_LIST");
 
-
         createDownloadList();
         DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
 
         for (DriveFile file : downloadRequestList) {
-            downloadFinishItemList.add(0, new DownloadItem(file.getName(), sdFormat.format(new Date()), file.getThumbnailLink(), false, file.getWidth(), file.getHeight()));
+            downloadFinishItemList.add(0, new DownloadItem(file.getName(), sdFormat.format(new Date()), file.getThumbnailLink(), 0, file.getWidth(), file.getHeight()));
         }
 
         Toolbar toolbar = findViewById(R.id.download_activity_toolbar);
@@ -113,7 +116,7 @@ public class DownloadActivity extends AppCompatActivity {
 
                 String fileName = path.substring(path.lastIndexOf("/") + 1);
 
-                downloadFinishItemList.add(0, new DownloadItem(fileName, date, path, true, 0, 0));
+                downloadFinishItemList.add(0, new DownloadItem(fileName, date, path, 100, 0, 0));
             } while (downloadCursor.moveToNext());
 
         }
@@ -127,7 +130,7 @@ public class DownloadActivity extends AppCompatActivity {
                 break;
             case PROGRESS_UPDATE:
                 int position = (int) msg.obj;
-                adapter.notifyDownloadFinished(position);
+                adapter.progressUpdate(position, msg.arg1);
                 break;
         }
     }
@@ -170,27 +173,29 @@ public class DownloadActivity extends AppCompatActivity {
 
         private void executeDownload(DriveFile file) {
             int updateItemPosition = downloadRequestList.indexOf(file);
+            String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() + "/WorksDrive";
+            File dir = new File(path);
+            if (!dir.exists()) {
+                dir.mkdirs();
+            }
+            File downloadedFile = new File(path + "/" + file.getName());
+
+            if (downloadedFile.exists()) {
+                System.out.println("다운받을 파일 존재" + FileUtils.getFileNameWithoutExtension(downloadedFile.getName()));
+                System.out.println(FileUtils.getDuplicatedFileName(downloadedFile));
+            }
+
             Call<ResponseBody> call = driveHelper.createDownloadCall(file.getId());
             try {
                 Response<ResponseBody> response = call.execute();
                 if (response.isSuccessful()) {
-                    String path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM).getAbsolutePath() + "/WorksDrive";
 
-                    File dir = new File(path);
-                    if (!dir.exists()) {
-                        dir.mkdirs();
-                    }
-
-                    File downloadedFile = new File(path, file.getName());
-
-                    boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile);
+                    boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile, updateItemPosition);
                     if (writtenToDisk) {
-                        Message message = mainThreadHandler.obtainMessage(PROGRESS_UPDATE, updateItemPosition);
-                        mainThreadHandler.sendMessage(message);
-
                         dbHelper.insertDB(downloadedFile.getAbsolutePath(), "DOWNLOAD");
                         DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
-                        dm.addCompletedDownload(file.getName(), "WM_Project_Google_Drive", true, "image/jpeg", downloadedFile.getAbsolutePath(), downloadedFile.length(), false);
+                        dm.addCompletedDownload(downloadedFile.getName(), "WM_Project_Google_Drive", true, "image/jpeg", downloadedFile.getAbsolutePath(), downloadedFile.length(), false);
+                        System.out.println("download HASH : " + downloadedFile.hashCode());
                     }
                 }
             } catch (IOException e) {
@@ -198,17 +203,26 @@ public class DownloadActivity extends AppCompatActivity {
             }
         }
 
-
-        private boolean writeResponseBodyToDisk(ResponseBody body, File destinationFile) {
+        private boolean writeResponseBodyToDisk(ResponseBody body, File destinationFile, int updateItemPosition) {
             try (InputStream inputStream = new BufferedInputStream(body.byteStream(), 4096);
                  OutputStream outputStream = new FileOutputStream(destinationFile)) {
                 byte[] fileReader = new byte[4096];
+                long fileSize = body.contentLength();
                 int readBuffer;
+                long fileSizeDownloadedInByte = 0;
+                int fileDownloadedInPercentage = 0;
+
                 while (true) {
                     readBuffer = inputStream.read(fileReader);
                     if (readBuffer == -1) {
                         break;
                     }
+                    fileSizeDownloadedInByte += readBuffer;
+                    fileDownloadedInPercentage = (int) ((fileSizeDownloadedInByte * 100) / fileSize);
+
+                    Message message = mainThreadHandler.obtainMessage(PROGRESS_UPDATE, updateItemPosition);
+                    message.arg1 = fileDownloadedInPercentage;
+                    mainThreadHandler.sendMessage(message);
 
                     outputStream.write(fileReader, 0, readBuffer);
                 }
@@ -221,6 +235,5 @@ public class DownloadActivity extends AppCompatActivity {
 
             }
         }
-
     }
 }

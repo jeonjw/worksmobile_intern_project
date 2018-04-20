@@ -22,6 +22,7 @@ import retrofit2.http.POST;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
 import retrofit2.http.Query;
+import retrofit2.http.Streaming;
 
 public interface DriveApi {
 
@@ -86,6 +87,7 @@ public interface DriveApi {
      * https://developers.google.com/drive/v3/web/manage-downloads
      */
     @GET("/drive/v3/files/{fileId}?alt=media")
+    @Streaming
     Call<ResponseBody> downloadFile(
             @Header("Authorization") String authToken,
             @Path(value = "fileId") String fileId

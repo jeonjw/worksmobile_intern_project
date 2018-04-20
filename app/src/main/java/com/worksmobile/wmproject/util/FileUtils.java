@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Environment;
 import android.provider.DocumentsContract;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 
@@ -28,19 +29,6 @@ public class FileUtils {
     public static final String MIME_TYPE_VIDEO = "video/*";
     public static final String MIME_TYPE_APP = "application/*";
 
-    public static String getExtension(String uri) {
-        if (uri == null) {
-            return null;
-        }
-
-        int dot = uri.lastIndexOf(".");
-        if (dot >= 0) {
-            return uri.substring(dot);
-        } else {
-            // No extension.
-            return "";
-        }
-    }
 
     public static boolean isLocal(String url) {
         return url != null && !url.startsWith("http://") && !url.startsWith("https://");
@@ -57,20 +45,79 @@ public class FileUtils {
         return null;
     }
 
+//    public static String getMimeType(File file) {
+//        String extension = getExtension(file.getName());
+//        if (extension.length() > 0)
+//            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.substring(1));
+//
+//        return "application/octet-stream";
+//    }
+//
+//    public static String getMimeType(Context context, Uri uri) {
+//        File file = new File(getPath(context, uri));
+//        return getMimeType(file);
+//    }
+
+//    public static String getExtension(String uri) {
+//        if (uri == null) {
+//            return null;
+//        }
+//
+//        int dot = uri.lastIndexOf(".");
+//        if (dot >= 0) {
+//            return uri.substring(dot);
+//        } else {
+//            // No extension.
+//            return "";
+//        }
+//    }
+
+    public static String getExtension(String fileName) {
+        String lowerName = fileName.toLowerCase();
+        if (!lowerName.contains("."))
+            return "";
+        return lowerName.substring(lowerName.lastIndexOf(".") + 1);
+    }
+
+    public static String getFileNameWithoutExtension(String fileName) {
+        String lowerName = fileName.toLowerCase();
+        if (!lowerName.contains("."))
+            return "";
+        return lowerName.substring(0, lowerName.lastIndexOf("."));
+    }
+
+    public static String getDuplicatedFileName(String fileName) {
+        return fileName + "_copied";
+    }
+
+    public static String getDuplicatedFileName(File file) {
+        String path = file.getParent();
+        String fileFullName = file.getName();
+
+        String fileName = getFileNameWithoutExtension(fileFullName);
+        String fileExtension = getExtension(fileFullName);
+
+        fileName = getDuplicatedFileName(fileName);
+        System.out.println("TTTTT : " + fileName );
+        File tempFile = new File(path + "/" + fileName + "." + fileExtension);
+        if (tempFile.exists()) {
+            getDuplicatedFileName(tempFile);
+        } else {
+            return fileName + "." + fileExtension;
+        }
+
+        return null;
+    }
+
+
     public static String getMimeType(File file) {
-
-        String extension = getExtension(file.getName());
-
-        if (extension.length() > 0)
-            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.substring(1));
-
-        return "application/octet-stream";
+        MimeTypeMap map = MimeTypeMap.getSingleton();
+        String mimeType = map.getMimeTypeFromExtension(getExtension(file.getName()));
+        if (TextUtils.isEmpty(mimeType))
+            return "*/*";
+        return mimeType;
     }
 
-    public static String getMimeType(Context context, Uri uri) {
-        File file = new File(getPath(context, uri));
-        return getMimeType(file);
-    }
 
     public static String getPath(final Context context, final Uri uri) {
 
@@ -180,10 +227,10 @@ public class FileUtils {
     public static Bitmap getThumbnail(Context context, File file) {
         return getThumbnail(context, getUri(file), getMimeType(file));
     }
-
-    public static Bitmap getThumbnail(Context context, Uri uri) {
-        return getThumbnail(context, uri, getMimeType(context, uri));
-    }
+//
+//    public static Bitmap getThumbnail(Context context, Uri uri) {
+//        return getThumbnail(context, uri, getMimeType(context, uri));
+//    }
 
     public static Bitmap getThumbnail(Context context, Uri uri, String mimeType) {
         if (DEBUG)

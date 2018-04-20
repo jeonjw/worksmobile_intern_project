@@ -234,12 +234,12 @@ public class DriveFile implements Serializable {
     public String toString() {
         if (imageMediaMetadata == null && videoMediaMetadata != null)
             return "DriveFile <" + "id = " + id +
-                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + videoMediaMetadata.toString() + '>';
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", size = " + size + ", metadata : " + videoMediaMetadata.toString() + '>';
         else if (imageMediaMetadata != null && videoMediaMetadata == null)
             return "DriveFile <" + "id = " + id +
-                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", metadata : " + imageMediaMetadata.toString() + '>';
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + createdTime.getTime() + ", size = " + size + ", metadata : " + imageMediaMetadata.toString() + '>';
         else
             return "DriveFile <" + "id = " + id +
-                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", createdTime = " + '>';
+                    ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", size = " + size + '>';
     }
 }

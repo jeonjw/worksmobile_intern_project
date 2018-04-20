@@ -46,10 +46,11 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
                 .into(holder.thumbnailImageView);
 
         holder.fileNameTextView.setText(file.getFileName());
-        if (file.isFinished()) {
+        if (file.getProgress() < 100) {
+            holder.progressBar.setProgress(file.getProgress());
+        } else {
             holder.progressBar.setVisibility(View.GONE);
             holder.dateTextView.setVisibility(View.VISIBLE);
-
             holder.dateTextView.setText(file.getDownlodDate());
         }
     }
@@ -62,9 +63,9 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
 
     }
 
-    public void notifyDownloadFinished(int updatePosition) {
+    public void progressUpdate(int updatePosition, int percentage) {
         DownloadItem file = downloadItemList.get(updatePosition);
-        file.setFinished(true);
+        file.setProgress(percentage);
         notifyItemChanged(updatePosition);
     }
 

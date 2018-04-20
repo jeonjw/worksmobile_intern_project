@@ -85,7 +85,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
             @Override
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
-                Intent intent = new Intent(getContext(), ImageViewerActivity.class);
+                Intent intent = new Intent(getActivity(), ImageViewerActivity.class);
                 intent.putExtra("FILE_LIST", fileList);
                 intent.putExtra("VIEWER_POSITION", itemPosition);
                 startActivity(intent);
@@ -228,7 +228,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     @Override
     public void onDownload() {
         ArrayList<DriveFile> downloadList = adapter.getCheckedFileList();
-        Intent intent = new Intent(getContext(), DownloadActivity.class);
+        Intent intent = new Intent(getActivity(), DownloadActivity.class);
         intent.putExtra("DOWNLOAD_LIST", downloadList);
         startActivity(intent);
     }

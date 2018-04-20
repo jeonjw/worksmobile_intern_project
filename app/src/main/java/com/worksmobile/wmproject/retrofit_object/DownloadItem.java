@@ -9,11 +9,11 @@ public class DownloadItem {
     private int height;
     private boolean isFinished;
 
-    public DownloadItem(String fileName, String downlodDate, String imageLink, boolean isFinished, int width, int height) {
+    public DownloadItem(String fileName, String downlodDate, String imageLink, int progress, int width, int height) {
         this.fileName = fileName;
         this.downlodDate = downlodDate;
         this.imageLink = imageLink;
-        this.isFinished = isFinished;
+        this.progress = progress;
         this.width = width;
         this.height = height;
     }
@@ -58,12 +58,12 @@ public class DownloadItem {
         this.imageLink = imageLink;
     }
 
-
-    public boolean isFinished() {
-        return isFinished;
+    public int getProgress() {
+        return progress;
     }
 
-    public void setFinished(boolean finished) {
-        isFinished = finished;
+    public void setProgress(int progress) {
+        this.progress = progress;
     }
+
 }
