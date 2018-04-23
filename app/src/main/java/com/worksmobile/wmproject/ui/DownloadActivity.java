@@ -14,6 +14,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.view.Menu;
 import android.view.MenuItem;
 
 import com.worksmobile.wmproject.ContractDB;
@@ -32,9 +33,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -64,8 +62,17 @@ public class DownloadActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == android.R.id.home) {
             finish();
+        } else if (item.getItemId() == R.id.toolbar_delete_download_list) {
+            deleteDownloadList();
         }
         return true;
+    }
+
+
+    private void deleteDownloadList() {
+        dbHelper.deleteDB("STATUS", "DOWNLOAD");
+        downloadFinishItemList.clear();
+        adapter.notifyDataSetChanged();
     }
 
     @Override
@@ -103,6 +110,12 @@ public class DownloadActivity extends AppCompatActivity {
         mainThreadHandler = new DownloadActivityHandler(this);
         handlerThread = new DownloadHandlerThread("DownloadHandlerThread");
         handlerThread.start();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.download_activity_toolbar_menu, menu);
+        return true;
     }
 
     private void createDownloadList() {
@@ -181,8 +194,9 @@ public class DownloadActivity extends AppCompatActivity {
             File downloadedFile = new File(path + "/" + file.getName());
 
             if (downloadedFile.exists()) {
-                System.out.println("다운받을 파일 존재" + FileUtils.getFileNameWithoutExtension(downloadedFile.getName()));
-                System.out.println(FileUtils.getDuplicatedFileName(downloadedFile));
+                System.out.println("다운받을 파일 존재 : " + FileUtils.getFileNameWithoutExtension(downloadedFile.getName()));
+
+                downloadedFile = new File(path + "/" + FileUtils.getDuplicatedFileName(downloadedFile));
             }
 
             Call<ResponseBody> call = driveHelper.createDownloadCall(file.getId());

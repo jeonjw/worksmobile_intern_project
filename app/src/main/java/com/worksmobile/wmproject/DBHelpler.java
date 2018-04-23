@@ -59,6 +59,7 @@ public class DBHelpler extends SQLiteOpenHelper {
         writableDatabase.insert(ContractDB.TBL_CONTACT, null, values);
     }
 
+
     public void closeDB() {
         writableDatabase.close();
         readableDatabase.close();

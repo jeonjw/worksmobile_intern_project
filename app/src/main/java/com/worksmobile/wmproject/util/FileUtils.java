@@ -98,15 +98,13 @@ public class FileUtils {
         String fileExtension = getExtension(fileFullName);
 
         fileName = getDuplicatedFileName(fileName);
-        System.out.println("TTTTT : " + fileName );
+        System.out.println("TTTTT : " + fileName);
         File tempFile = new File(path + "/" + fileName + "." + fileExtension);
         if (tempFile.exists()) {
-            getDuplicatedFileName(tempFile);
+            return getDuplicatedFileName(tempFile);
         } else {
             return fileName + "." + fileExtension;
         }
-
-        return null;
     }
 
 
