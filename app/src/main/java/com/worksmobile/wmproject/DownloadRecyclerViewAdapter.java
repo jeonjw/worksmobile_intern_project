@@ -9,13 +9,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.worksmobile.wmproject.retrofit_object.DownloadItem;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 
 public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRecyclerViewAdapter.DownloadItemViewHolder> {
@@ -47,6 +42,7 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
 
         holder.fileNameTextView.setText(file.getFileName());
         if (file.getProgress() < 100) {
+            holder.dateTextView.setVisibility(View.GONE);
             holder.progressBar.setProgress(file.getProgress());
         } else {
             holder.progressBar.setVisibility(View.GONE);

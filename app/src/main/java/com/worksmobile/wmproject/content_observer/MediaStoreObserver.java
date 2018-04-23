@@ -5,14 +5,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
 
-import com.worksmobile.wmproject.ContractDB;
-import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.MyBroadCastReceiver;
+import com.worksmobile.wmproject.room.AppDatabase;
+import com.worksmobile.wmproject.room.FileStatus;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 public class MediaStoreObserver extends ContentObserver {
 
@@ -20,11 +24,9 @@ public class MediaStoreObserver extends ContentObserver {
     private Uri EXTERNAL_CONTENT_URI;
     private Context context;
     private Cursor countCursor;
-    private DBHelpler dbHelper;
     private Handler handler;
     private static final int CALLBACK_PRESENT_INTEGER = 0;
     private Runnable broakdCastTask;
-
 
     public MediaStoreObserver(Handler handler, Context context, Uri contentUri) {
         super(handler);
@@ -44,6 +46,8 @@ public class MediaStoreObserver extends ContentObserver {
             countCursor.moveToFirst();
             storageCount = countCursor.getInt(0);
         }
+
+
     }
 
     @Override
@@ -67,7 +71,11 @@ public class MediaStoreObserver extends ContentObserver {
                 return;
             }
 
-            dbHelper.insertDB(getLastPictureLocation(), "UPLOAD");
+            DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+            Date nowDate = new Date();
+            String tempDate = sdFormat.format(nowDate);
+            AppDatabase.getDatabase(context).fileDAO().insertFileStatus(new FileStatus(getLastPictureLocation(), tempDate, "UPLOAD"));
+
 
             if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && broakdCastTask != null) {
                 handler.removeCallbacks(broakdCastTask);
@@ -87,14 +95,6 @@ public class MediaStoreObserver extends ContentObserver {
 
     private void initDB() {
         System.out.println("INIT DB");
-        dbHelper = new DBHelpler(context);
-
-        SQLiteDatabase db = dbHelper.getWritableDatabase();
-//        db.execSQL("DROP TABLE IF EXISTS " + "UPLOAD_TABLE");
-//        db.execSQL(ContractDB.SQL_CREATE_TBL);
-//        db.execSQL(ContractDB.SQL_DELETE);
-//        db.execSQL("UPDATE SQLITE_SEQUENCE SET seq = 0" + " WHERE name = 'UPLOAD_TABLE'");
-
     }
 
 
@@ -125,7 +125,6 @@ public class MediaStoreObserver extends ContentObserver {
 
 
         if (cursor != null && cursor.moveToFirst()) {
-            System.out.println("TEMP: " + cursor.getString(1));
             return cursor.getString(1);
         }
 

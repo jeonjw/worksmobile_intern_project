@@ -17,6 +17,7 @@ import com.worksmobile.wmproject.retrofit_object.DriveFile;
 import com.worksmobile.wmproject.retrofit_object.DriveFiles;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
+import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.util.DriveUtils;
 import com.worksmobile.wmproject.util.FileUtils;
 
@@ -222,16 +223,15 @@ public class DriveHelper {
         return driveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
     }
 
-    public Call<UploadResult> createUploadCall(String imageLocation, Handler handler) {
-        File srcFile = new File(imageLocation);
-        System.out.println("UPLOAD HASH : " + srcFile.hashCode());
+    public Call<UploadResult> createUploadCall(FileStatus fileStatus, Handler handler) {
+        File srcFile = new File(fileStatus.getLocation());
         if (!srcFile.exists())
             return null;
 
         String content = "{\"name\": \"" + srcFile.getName() + "\"}";
 
         RequestBody description = createPartFromString(content);
-        MultipartBody.Part dataPart = prepareFilePart(srcFile, handler);
+        MultipartBody.Part dataPart = prepareFilePart(srcFile, fileStatus, handler);
 
         return driveApi.uploadFile(getAuthToken(), description, dataPart);
     }
@@ -243,14 +243,14 @@ public class DriveHelper {
     }
 
     @NonNull
-    private MultipartBody.Part prepareFilePart(File file, Handler handler) {
+    private MultipartBody.Part prepareFilePart(File file, FileStatus fileStatus, Handler handler) {
         String mimeType = FileUtils.getMimeType(file);
 
         RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {
             @Override
             public void onUploadProgress(final int progressInPercent, final long totalBytes) {
                 if (progressInPercent == 100) {
-                    Message message = handler.obtainMessage(UPLOAD_SUCCESS, file.getAbsolutePath());
+                    Message message = handler.obtainMessage(UPLOAD_SUCCESS, fileStatus);
 
                     handler.sendMessageAtFrontOfQueue(message);
                 }

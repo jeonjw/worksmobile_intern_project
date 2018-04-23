@@ -2,8 +2,6 @@ package com.worksmobile.wmproject.ui;
 
 import android.app.DownloadManager;
 import android.content.Context;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -17,14 +15,14 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.worksmobile.wmproject.ContractDB;
-import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.DownloadActivityHandler;
 import com.worksmobile.wmproject.DownloadRecyclerViewAdapter;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.retrofit_object.DownloadItem;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.room.AppDatabase;
+import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.util.FileUtils;
 
 import java.io.BufferedInputStream;
@@ -37,6 +35,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import okhttp3.ResponseBody;
@@ -48,15 +47,17 @@ public class DownloadActivity extends AppCompatActivity {
     public static final int READY = 300;
     public static final int DOWNLOAD_REQUEST = 301;
     public static final int PROGRESS_UPDATE = 302;
+    public static final int QUERY = 303;
+    public static final int QUERY_FINISH = 304;
 
     private DownloadRecyclerViewAdapter adapter;
     private Handler mainThreadHandler;
     private DownloadHandlerThread handlerThread;
 
     private DriveHelper driveHelper;
-    private DBHelpler dbHelper;
     private ArrayList<DriveFile> downloadRequestList;
-    private ArrayList<DownloadItem> downloadFinishItemList;
+    private ArrayList<DownloadItem> downloadItemList;
+    private List<FileStatus> downloadFileListFromDB;
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -70,8 +71,9 @@ public class DownloadActivity extends AppCompatActivity {
 
 
     private void deleteDownloadList() {
-        dbHelper.deleteDB("STATUS", "DOWNLOAD");
-        downloadFinishItemList.clear();
+        for (FileStatus fileStatus : downloadFileListFromDB)
+            AppDatabase.getDatabase(getBaseContext()).fileDAO().deleteFileStatus(fileStatus);
+        downloadItemList.clear();
         adapter.notifyDataSetChanged();
     }
 
@@ -79,32 +81,22 @@ public class DownloadActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_download);
-
-        dbHelper = new DBHelpler(this);
         driveHelper = new DriveHelper(this);
-        downloadFinishItemList = new ArrayList<>();
+        downloadItemList = new ArrayList<>();
 
         downloadRequestList = (ArrayList<DriveFile>) getIntent().getSerializableExtra("DOWNLOAD_LIST");
-
-        createDownloadList();
-        DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
-
-        for (DriveFile file : downloadRequestList) {
-            downloadFinishItemList.add(0, new DownloadItem(file.getName(), sdFormat.format(new Date()), file.getThumbnailLink(), 0, file.getWidth(), file.getHeight()));
-        }
 
         Toolbar toolbar = findViewById(R.id.download_activity_toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_close);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-
         LinearLayoutManager layoutManager = new LinearLayoutManager(this);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
 
         RecyclerView recyclerView = findViewById(R.id.download_recyclerview);
         recyclerView.setLayoutManager(layoutManager);
-        adapter = new DownloadRecyclerViewAdapter(downloadFinishItemList);
+        adapter = new DownloadRecyclerViewAdapter(downloadItemList);
         recyclerView.setAdapter(adapter);
 
         mainThreadHandler = new DownloadActivityHandler(this);
@@ -118,27 +110,17 @@ public class DownloadActivity extends AppCompatActivity {
         return true;
     }
 
-    private void createDownloadList() {
-        SQLiteDatabase db = dbHelper.getReadableDatabase();
-        Cursor downloadCursor = db.rawQuery(ContractDB.SQL_SELECT_DOWNLOAD, null);
-
-        if (downloadCursor.moveToFirst()) {
-            do {
-                String path = downloadCursor.getString(1);
-                String date = downloadCursor.getString(2);
-
-                String fileName = path.substring(path.lastIndexOf("/") + 1);
-
-                downloadFinishItemList.add(0, new DownloadItem(fileName, date, path, 100, 0, 0));
-            } while (downloadCursor.moveToNext());
-
-        }
-        downloadCursor.close();
-    }
-
     public void handleMessage(Message msg) {
         switch (msg.what) {
             case READY:
+                handlerThread.sendQueryRequest();
+                break;
+            case QUERY_FINISH:
+                DateFormat dateFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+                for (DriveFile file : downloadRequestList) {
+                    downloadItemList.add(0, new DownloadItem(file.getName(), dateFormat.format(new Date()), file.getThumbnailLink(), 0, file.getWidth(), file.getHeight()));
+                }
+                adapter.notifyDataSetChanged();
                 createDownloadRequest();
                 break;
             case PROGRESS_UPDATE:
@@ -167,6 +149,9 @@ public class DownloadActivity extends AppCompatActivity {
                 @Override
                 public void handleMessage(Message msg) {
                     switch (msg.what) {
+                        case QUERY:
+                            createDownloadList();
+                            break;
                         case DOWNLOAD_REQUEST:
                             DriveFile file = (DriveFile) msg.obj;
                             executeDownload(file);
@@ -194,8 +179,6 @@ public class DownloadActivity extends AppCompatActivity {
             File downloadedFile = new File(path + "/" + file.getName());
 
             if (downloadedFile.exists()) {
-                System.out.println("다운받을 파일 존재 : " + FileUtils.getFileNameWithoutExtension(downloadedFile.getName()));
-
                 downloadedFile = new File(path + "/" + FileUtils.getDuplicatedFileName(downloadedFile));
             }
 
@@ -206,10 +189,13 @@ public class DownloadActivity extends AppCompatActivity {
 
                     boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile, updateItemPosition);
                     if (writtenToDisk) {
-                        dbHelper.insertDB(downloadedFile.getAbsolutePath(), "DOWNLOAD");
+                        DateFormat dateFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+                        Date nowDate = new Date();
+                        String tempDate = dateFormat.format(nowDate);
+                        AppDatabase.getDatabase(DownloadActivity.this).fileDAO().insertFileStatus(new FileStatus(downloadedFile.getAbsolutePath(), tempDate, "DOWNLOAD"));
+
                         DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
                         dm.addCompletedDownload(downloadedFile.getName(), "WM_Project_Google_Drive", true, "image/jpeg", downloadedFile.getAbsolutePath(), downloadedFile.length(), false);
-                        System.out.println("download HASH : " + downloadedFile.hashCode());
                     }
                 }
             } catch (IOException e) {
@@ -224,7 +210,7 @@ public class DownloadActivity extends AppCompatActivity {
                 long fileSize = body.contentLength();
                 int readBuffer;
                 long fileSizeDownloadedInByte = 0;
-                int fileDownloadedInPercentage = 0;
+                int fileDownloadedInPercentage;
 
                 while (true) {
                     readBuffer = inputStream.read(fileReader);
@@ -249,5 +235,24 @@ public class DownloadActivity extends AppCompatActivity {
 
             }
         }
+
+        public void sendQueryRequest() {
+            Message message = handler.obtainMessage(QUERY);
+            handler.sendMessageAtFrontOfQueue(message);
+        }
+
+        private void createDownloadList() {
+            downloadFileListFromDB = AppDatabase.getDatabase(getBaseContext()).fileDAO().getDownloadFileList();
+            for (FileStatus fileStatus : downloadFileListFromDB) {
+                String path = fileStatus.getLocation();
+                String date = fileStatus.getDate();
+
+                String fileName = path.substring(path.lastIndexOf("/") + 1);
+
+                downloadItemList.add(0, new DownloadItem(fileName, date, path, 100, 0, 0));
+            }
+            mainThreadHandler.sendEmptyMessage(QUERY_FINISH);
+        }
+
     }
 }

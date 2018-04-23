@@ -31,15 +31,20 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.worksmobile.wmproject.DBHelpler;
 import com.worksmobile.wmproject.MyBroadCastReceiver;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
+import com.worksmobile.wmproject.room.AppDatabase;
+import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 import com.worksmobile.wmproject.util.FileUtils;
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 
 
 public class MainActivity extends AppCompatActivity
@@ -238,10 +243,12 @@ public class MainActivity extends AppCompatActivity
                 if (resultCode == RESULT_OK) {
                     Uri uri = data.getData();
                     String path = FileUtils.getPath(this, uri);
-                    DBHelpler dbHelpler = new DBHelpler(this);
                     if (path != null) {
-                        Toast.makeText(this, "업로드 요청 완료", Toast.LENGTH_SHORT).show();
-                        dbHelpler.insertDB(path, "UPLOAD");
+                        DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
+                        Date nowDate = new Date();
+                        String tempDate = sdFormat.format(nowDate);
+                        AppDatabase.getDatabase(this).fileDAO().insertFileStatus(new FileStatus(path, tempDate, "UPLOAD"));
+
                         sendNewMediaBroadCast();
                     } else {
                         Snackbar.make(bottomView, "가져올 수 없는 파일 입니다.", Snackbar.LENGTH_SHORT).show();
