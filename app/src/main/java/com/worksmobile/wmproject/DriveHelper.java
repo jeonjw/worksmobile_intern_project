@@ -1,12 +1,11 @@
 package com.worksmobile.wmproject;
 
 import android.content.Context;
+import android.media.ExifInterface;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.text.TextUtils;
-import android.webkit.MimeTypeMap;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
@@ -15,6 +14,7 @@ import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
 import com.worksmobile.wmproject.retrofit_object.DriveFiles;
+import com.worksmobile.wmproject.retrofit_object.Location;
 import com.worksmobile.wmproject.retrofit_object.Token;
 import com.worksmobile.wmproject.retrofit_object.UploadResult;
 import com.worksmobile.wmproject.room.FileStatus;
@@ -34,6 +34,11 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
+import static android.media.ExifInterface.TAG_GPS_ALTITUDE;
+import static android.media.ExifInterface.TAG_GPS_LATITUDE;
+import static android.media.ExifInterface.TAG_GPS_LATITUDE_REF;
+import static android.media.ExifInterface.TAG_GPS_LONGITUDE;
+import static android.media.ExifInterface.TAG_GPS_LONGITUDE_REF;
 import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_FAIL;
 import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_SUCCESS;
 
@@ -43,7 +48,7 @@ public class DriveHelper {
     private static final String SUCCESS = "SUCCESS";
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
-    private static final String QUERY_FIELDS = "files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/size, files/imageMediaMetadata, files/videoMediaMetadata";
+    private static final String QUERY_FIELDS = "files/properties, files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/size, files/imageMediaMetadata, files/videoMediaMetadata";
 
     private String clientId;
     private String clientSecret;
@@ -186,12 +191,13 @@ public class DriveHelper {
         });
     }
 
-    public void enqueueDeleteCall(String fileId, final StateCallback callback) {
+    public void enqueueDeleteCall(DriveFile file, final StateCallback callback) {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("trashed", true);
+
         RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
 
-        Call<DriveFile> call = driveApi.updateFile(getAuthToken(), fileId, body);
+        Call<DriveFile> call = driveApi.updateFile(getAuthToken(), file.getId(), body);
         call.enqueue(new Callback<DriveFile>() {
             @Override
             public void onResponse(@NonNull Call<DriveFile> call, @NonNull Response<DriveFile> response) {
@@ -217,6 +223,44 @@ public class DriveHelper {
         });
     }
 
+    public void setLocationProperties(DriveFile file, final StateCallback callback) {
+        JsonObject jsonObject = new JsonObject();
+        JsonObject properties = new JsonObject();
+        if (file.getImageMediaMetadata().getLocation() != null) {
+            properties.addProperty("longitude", file.getImageMediaMetadata().getLocation().getLongitude());
+            properties.addProperty("latitude", file.getImageMediaMetadata().getLocation().getLatitude());
+            properties.addProperty("altitude", file.getImageMediaMetadata().getLocation().getAltitude());
+            jsonObject.add("properties", properties);
+        }
+
+        RequestBody body = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
+
+        Call<DriveFile> call = driveApi.updateFile(getAuthToken(), file.getId(), body);
+        call.enqueue(new Callback<DriveFile>() {
+            @Override
+            public void onResponse(@NonNull Call<DriveFile> call, @NonNull Response<DriveFile> response) {
+                String message = DriveUtils.printResponse("setLocationProperties", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(null);
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<DriveFile> call, @NonNull Throwable t) {
+                String message = DriveUtils.printFailure("setLocationProperties", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
 
     public Call<Token> createTokenRefeshCall() {
         checkRefreshToken();
@@ -228,22 +272,93 @@ public class DriveHelper {
         if (!srcFile.exists())
             return null;
 
-        String content = "{\"name\": \"" + srcFile.getName() + "\"}";
+        Location location = getLocationFromEXIF(fileStatus.getLocation());
 
-        RequestBody description = createPartFromString(content);
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("name", srcFile.getName());
+
+        if (location != null) {
+            JsonObject properties = new JsonObject();
+            properties.addProperty("latitude", location.getLatitude());
+            properties.addProperty("longitude", location.getLongitude());
+            properties.addProperty("altitude", location.getAltitude());
+            jsonObject.add("properties", properties);
+        }
+        RequestBody propertiyBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
         MultipartBody.Part dataPart = prepareFilePart(srcFile, fileStatus, handler);
 
-        return driveApi.uploadFile(getAuthToken(), description, dataPart);
+        return driveApi.uploadFile(getAuthToken(), propertiyBody, dataPart);
+    }
+
+    public Location getLocationFromEXIF(String file) {
+        double latitudeDegree = 0;
+        double longitudeDegree = 0;
+        double altitudeDegree = 0;
+        Location location = null;
+        try {
+            ExifInterface exifInterface = new ExifInterface(file);
+
+            String latitude = exifInterface.getAttribute(TAG_GPS_LATITUDE);
+            String longitude = exifInterface.getAttribute(TAG_GPS_LONGITUDE);
+            String latitudeRef = exifInterface.getAttribute(TAG_GPS_LATITUDE_REF);
+            String longitudeRef = exifInterface.getAttribute(TAG_GPS_LONGITUDE_REF);
+            altitudeDegree = exifInterface.getAttributeDouble(TAG_GPS_ALTITUDE, 0);
+
+            if (latitudeRef != null || longitudeRef != null) {
+                if (latitudeRef.equals("N")) {
+                    System.out.println(convertToDegree(latitude));
+                    latitudeDegree = convertToDegree(latitude);
+                } else {
+                    System.out.println(0 - convertToDegree(latitude));
+                    latitudeDegree = 0 - convertToDegree(latitude);
+                }
+
+                if (longitudeRef.equals("E")) {
+                    System.out.println(convertToDegree(longitude));
+                    longitudeDegree = convertToDegree(longitude);
+                } else {
+                    System.out.println(0 - convertToDegree(longitude));
+                    longitudeDegree = 0 - convertToDegree(longitude);
+                }
+
+                location = new Location(latitudeDegree, longitudeDegree, altitudeDegree);
+            }
+
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("GPS DEGREE : " + latitudeDegree + ", " + longitudeDegree + ", " + altitudeDegree);
+        return location;
+    }
+
+    private Float convertToDegree(String stringDMS) {
+        Float result;
+        String[] DMS = stringDMS.split(",", 3);
+
+        String[] stringD = DMS[0].split("/", 2);
+        Double D0 = Double.valueOf(stringD[0]);
+        Double D1 = Double.valueOf(stringD[1]);
+        Double FloatD = D0 / D1;
+
+        String[] stringM = DMS[1].split("/", 2);
+        Double M0 = Double.valueOf(stringM[0]);
+        Double M1 = Double.valueOf(stringM[1]);
+        Double FloatM = M0 / M1;
+
+        String[] stringS = DMS[2].split("/", 2);
+        Double S0 = Double.valueOf(stringS[0]);
+        Double S1 = Double.valueOf(stringS[1]);
+        Double FloatS = S0 / S1;
+
+        result = (float) (FloatD + (FloatM / 60) + (FloatS / 3600));
+
+        return result;
     }
 
     @NonNull
-    private RequestBody createPartFromString(String descriptionString) {
-        MediaType contentType = MediaType.parse("application/json; charset=UTF-8");
-        return RequestBody.create(contentType, descriptionString);
-    }
-
-    @NonNull
-    private MultipartBody.Part prepareFilePart(File file, FileStatus fileStatus, Handler handler) {
+    private MultipartBody.Part prepareFilePart(File file, FileStatus fileStatus, Handler
+            handler) {
         String mimeType = FileUtils.getMimeType(file);
 
         RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {

@@ -11,6 +11,9 @@ public class MediaMetadata implements Serializable {
     private int height;
     @SerializedName("time")
     private String time;
+    @SerializedName("location")
+    private Location location;
+
 
     public int getWidth() {
         return width;
@@ -32,8 +35,16 @@ public class MediaMetadata implements Serializable {
         return time;
     }
 
+    public Location getLocation() {
+        return location;
+    }
+
+    public void setLocation(Location location) {
+        this.location = location;
+    }
+
     @Override
     public String toString() {
-        return "width : " + width + ", height : " + height + ", time : " + time;
+        return "width : " + width + ", height : " + height + ", time : " + time + ", location : " + location;
     }
 }

@@ -186,7 +186,6 @@ public class DownloadActivity extends AppCompatActivity {
             try {
                 Response<ResponseBody> response = call.execute();
                 if (response.isSuccessful()) {
-
                     boolean writtenToDisk = writeResponseBodyToDisk(response.body(), downloadedFile, updateItemPosition);
                     if (writtenToDisk) {
                         DateFormat dateFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
@@ -208,6 +207,7 @@ public class DownloadActivity extends AppCompatActivity {
                  OutputStream outputStream = new FileOutputStream(destinationFile)) {
                 byte[] fileReader = new byte[4096];
                 long fileSize = body.contentLength();
+
                 int readBuffer;
                 long fileSizeDownloadedInByte = 0;
                 int fileDownloadedInPercentage;

@@ -32,7 +32,6 @@ public class MediaStoreObserver extends ContentObserver {
         super(handler);
         this.context = context;
         this.handler = handler;
-        initDB();
 
         EXTERNAL_CONTENT_URI = contentUri;
 
@@ -65,12 +64,10 @@ public class MediaStoreObserver extends ContentObserver {
         }
 
         if (storageCount > previousCount) {
-
-            System.out.println("Media 추가");
             if (isDownlodFileFromDrive(getLastPictureLocation())) {
                 return;
             }
-
+            System.out.println("Media 추가");
             DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
             Date nowDate = new Date();
             String tempDate = sdFormat.format(nowDate);
@@ -91,12 +88,6 @@ public class MediaStoreObserver extends ContentObserver {
     private boolean isDownlodFileFromDrive(String location) {
         return location.contains("/storage/emulated/0/DCIM/WorksDrive/");
     }
-
-
-    private void initDB() {
-        System.out.println("INIT DB");
-    }
-
 
     private Runnable getBroadCastTask() {
         return new Runnable() {

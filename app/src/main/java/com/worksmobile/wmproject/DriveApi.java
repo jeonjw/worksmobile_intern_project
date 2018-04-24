@@ -105,13 +105,6 @@ public interface DriveApi {
     /**
      * https://developers.google.com/drive/v3/reference/files/update
      */
-//    @PATCH("/drive/v3/files/{fileId}")
-//    Call<DriveFile> updateFile(
-//            @Header("Authorization") String authToken,
-//            @Path(value = "fileId") String fileId,
-//            @Query("addParents") String addParents,
-//            @Query("removeParents") String removeParents
-//    );
     @PATCH("/drive/v3/files/{fileId}")
     Call<DriveFile> updateFile(
             @Header("Authorization") String authToken,

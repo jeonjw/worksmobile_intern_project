@@ -25,6 +25,7 @@ import com.worksmobile.wmproject.callback.OnModeChangeListener;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.retrofit_object.MediaMetadata;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -162,6 +163,19 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                     swipeContainer.setRefreshing(false);
 
                 progressBar.setVisibility(View.GONE);
+
+
+                /**
+                 이미지 파일의 위도 경도가 존재한다면 추후 위도 경도 쿼리를 진행하기 위해 properties Update과정을 거친다. (마이그레이션 코드 추후 삭제할것)
+                 조건문 변경해야함, 프로퍼티가 없고, 로케이션이 있을 때 마이그레이션 진행하도록 변경해야함 (4.24 PM 07)
+                 */
+                for (DriveFile file : driveFiles) {
+                    MediaMetadata mediaMetadata = file.getImageMediaMetadata();
+                    if (mediaMetadata != null) {
+                        if (mediaMetadata.getLocation() != null)
+                            driveHelper.setLocationProperties(file, null);
+                    }
+                }
             }
 
             @Override
@@ -240,7 +254,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 
     public void requestDelete() {
         for (DriveFile file : adapter.getCheckedFileList()) {
-            driveHelper.enqueueDeleteCall(file.getId(), new StateCallback() {
+            driveHelper.enqueueDeleteCall(file, new StateCallback() {
                 @Override
                 public void onSuccess(String msg) {
                     if (msg == null) {
@@ -262,7 +276,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 
     private void createAlertDialog(int count) {
         String deleteMessage = String.format(Locale.KOREA, "%d개의 항목을 삭제하시겠습니까?\n삭제된 항목은 휴지통으로 이동합니다.", count);
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getContext());
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getActivity());
         alertDialogBuilder.setTitle("삭제하기")
                 .setMessage(deleteMessage)
                 .setCancelable(false)

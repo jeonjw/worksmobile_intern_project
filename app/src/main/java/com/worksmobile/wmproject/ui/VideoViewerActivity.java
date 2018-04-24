@@ -37,7 +37,6 @@ public class VideoViewerActivity extends AppCompatActivity {
 
     private String getDownlodedFilePath(String fileName) {
         String path = null;
-        System.out.println("TEST SIZE : " + AppDatabase.getDatabase(this).fileDAO().findPath(fileName).size());
         for(FileStatus fileStatus :  AppDatabase.getDatabase(this).fileDAO().findPath(fileName)){
             File file = new File(fileStatus.getLocation());
             if (file.exists()) {
