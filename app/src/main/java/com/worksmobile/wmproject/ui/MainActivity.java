@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity
 
     private static final String[] PERMISSIONS = {
             Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
     };
 
     private View.OnClickListener drawerListener = new View.OnClickListener() {
@@ -274,7 +274,13 @@ public class MainActivity extends AppCompatActivity
                 currentToolbarTitle = getString(R.string.all_photo);
                 toolbarTextView.setText(currentToolbarTitle);
                 break;
-
+            case R.id.nav_photo_map:
+                fragment = new MapFragment();
+                currentToolbarTitle = "사진 지도";
+                toolbarTextView.setText(currentToolbarTitle);
+                drawerLayout.closeDrawer(GravityCompat.START);
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).commit();
+                return true;
             case R.id.nav_video:
                 fragment = new VideoFragment();
                 currentToolbarTitle = getString(R.string.all_video);
@@ -298,7 +304,7 @@ public class MainActivity extends AppCompatActivity
         drawerLayout.closeDrawer(GravityCompat.START);
         if (fragment != null) {
             onSelectModeClickListener = (BaseFragment) fragment;
-            getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).addToBackStack(null).commit();
+            getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).commit();
         }
 
         return true;

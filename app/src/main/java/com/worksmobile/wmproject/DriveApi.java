@@ -1,10 +1,10 @@
 package com.worksmobile.wmproject;
 
 
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
-import com.worksmobile.wmproject.retrofit_object.DriveFiles;
-import com.worksmobile.wmproject.retrofit_object.Token;
-import com.worksmobile.wmproject.retrofit_object.UploadResult;
+import com.worksmobile.wmproject.value_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFiles;
+import com.worksmobile.wmproject.value_object.Token;
+import com.worksmobile.wmproject.value_object.UploadResult;
 
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;

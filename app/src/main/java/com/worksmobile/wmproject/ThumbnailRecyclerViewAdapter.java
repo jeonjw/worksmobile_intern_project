@@ -9,7 +9,7 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFile;
 
 import java.util.ArrayList;
 import java.util.HashSet;

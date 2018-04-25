@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject.retrofit_object;
+package com.worksmobile.wmproject.value_object;
 
 public class DownloadItem {
     private String fileName;

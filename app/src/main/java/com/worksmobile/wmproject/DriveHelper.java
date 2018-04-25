@@ -1,7 +1,7 @@
 package com.worksmobile.wmproject;
 
 import android.content.Context;
-import android.media.ExifInterface;
+import android.support.media.ExifInterface;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
@@ -12,11 +12,11 @@ import com.google.gson.JsonObject;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
-import com.worksmobile.wmproject.retrofit_object.DriveFiles;
-import com.worksmobile.wmproject.retrofit_object.Location;
-import com.worksmobile.wmproject.retrofit_object.Token;
-import com.worksmobile.wmproject.retrofit_object.UploadResult;
+import com.worksmobile.wmproject.value_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFiles;
+import com.worksmobile.wmproject.value_object.LocationInfo;
+import com.worksmobile.wmproject.value_object.Token;
+import com.worksmobile.wmproject.value_object.UploadResult;
 import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.util.DriveUtils;
 import com.worksmobile.wmproject.util.FileUtils;
@@ -34,11 +34,11 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import static android.media.ExifInterface.TAG_GPS_ALTITUDE;
-import static android.media.ExifInterface.TAG_GPS_LATITUDE;
-import static android.media.ExifInterface.TAG_GPS_LATITUDE_REF;
-import static android.media.ExifInterface.TAG_GPS_LONGITUDE;
-import static android.media.ExifInterface.TAG_GPS_LONGITUDE_REF;
+import static android.support.media.ExifInterface.TAG_GPS_ALTITUDE;
+import static android.support.media.ExifInterface.TAG_GPS_LATITUDE;
+import static android.support.media.ExifInterface.TAG_GPS_LATITUDE_REF;
+import static android.support.media.ExifInterface.TAG_GPS_LONGITUDE;
+import static android.support.media.ExifInterface.TAG_GPS_LONGITUDE_REF;
 import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_FAIL;
 import static com.worksmobile.wmproject.service.BackgroundUploadService.UPLOAD_SUCCESS;
 
@@ -226,10 +226,11 @@ public class DriveHelper {
     public void setLocationProperties(DriveFile file, final StateCallback callback) {
         JsonObject jsonObject = new JsonObject();
         JsonObject properties = new JsonObject();
-        if (file.getImageMediaMetadata().getLocation() != null) {
-            properties.addProperty("longitude", file.getImageMediaMetadata().getLocation().getLongitude());
-            properties.addProperty("latitude", file.getImageMediaMetadata().getLocation().getLatitude());
-            properties.addProperty("altitude", file.getImageMediaMetadata().getLocation().getAltitude());
+        if (file.getImageMediaMetadata().getLocationInfo() != null) {
+            properties.addProperty("hasLocateInfo", true);
+            properties.addProperty("longitude", file.getImageMediaMetadata().getLocationInfo().getLongitude());
+            properties.addProperty("latitude", file.getImageMediaMetadata().getLocationInfo().getLatitude());
+            properties.addProperty("altitude", file.getImageMediaMetadata().getLocationInfo().getAltitude());
             jsonObject.add("properties", properties);
         }
 
@@ -272,16 +273,17 @@ public class DriveHelper {
         if (!srcFile.exists())
             return null;
 
-        Location location = getLocationFromEXIF(fileStatus.getLocation());
+        LocationInfo locationInfo = getLocationFromEXIF(fileStatus.getLocation());
 
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("name", srcFile.getName());
 
-        if (location != null) {
+        if (locationInfo != null) {
             JsonObject properties = new JsonObject();
-            properties.addProperty("latitude", location.getLatitude());
-            properties.addProperty("longitude", location.getLongitude());
-            properties.addProperty("altitude", location.getAltitude());
+            properties.addProperty("hasLocateInfo", true);
+            properties.addProperty("latitude", locationInfo.getLatitude());
+            properties.addProperty("longitude", locationInfo.getLongitude());
+            properties.addProperty("altitude", locationInfo.getAltitude());
             jsonObject.add("properties", properties);
         }
         RequestBody propertiyBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
@@ -290,11 +292,11 @@ public class DriveHelper {
         return driveApi.uploadFile(getAuthToken(), propertiyBody, dataPart);
     }
 
-    public Location getLocationFromEXIF(String file) {
+    public LocationInfo getLocationFromEXIF(String file) {
         double latitudeDegree = 0;
         double longitudeDegree = 0;
         double altitudeDegree = 0;
-        Location location = null;
+        LocationInfo locationInfo = null;
         try {
             ExifInterface exifInterface = new ExifInterface(file);
 
@@ -321,7 +323,7 @@ public class DriveHelper {
                     longitudeDegree = 0 - convertToDegree(longitude);
                 }
 
-                location = new Location(latitudeDegree, longitudeDegree, altitudeDegree);
+                locationInfo = new LocationInfo(latitudeDegree, longitudeDegree, altitudeDegree);
             }
 
         } catch (IOException e) {
@@ -329,30 +331,29 @@ public class DriveHelper {
         }
 
         System.out.println("GPS DEGREE : " + latitudeDegree + ", " + longitudeDegree + ", " + altitudeDegree);
-        return location;
+        return locationInfo;
     }
 
-    private Float convertToDegree(String stringDMS) {
-        Float result;
+    private double convertToDegree(String stringDMS) {
+        double result;
         String[] DMS = stringDMS.split(",", 3);
 
         String[] stringD = DMS[0].split("/", 2);
         Double D0 = Double.valueOf(stringD[0]);
         Double D1 = Double.valueOf(stringD[1]);
-        Double FloatD = D0 / D1;
+        Double doubleD = D0 / D1;
 
         String[] stringM = DMS[1].split("/", 2);
         Double M0 = Double.valueOf(stringM[0]);
         Double M1 = Double.valueOf(stringM[1]);
-        Double FloatM = M0 / M1;
+        Double doubleM = M0 / M1;
 
         String[] stringS = DMS[2].split("/", 2);
         Double S0 = Double.valueOf(stringS[0]);
         Double S1 = Double.valueOf(stringS[1]);
-        Double FloatS = S0 / S1;
+        Double doubleS = S0 / S1;
 
-        result = (float) (FloatD + (FloatM / 60) + (FloatS / 3600));
-
+        result = (float) (doubleD + (doubleM / 60) + (doubleS / 3600));
         return result;
     }
 
@@ -404,6 +405,40 @@ public class DriveHelper {
         if (mimeType != null) {
             query += String.format(" and mimeType contains '%s'", mimeType);
         }
+
+        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
+                "name", 1000, null, query, QUERY_FIELDS);
+        call.enqueue(new Callback<DriveFiles>() {
+            @Override
+            public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
+                String message = DriveUtils.printResponse("enqueueListCreationCall", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(response.body().getFiles());
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
+                String message = DriveUtils.printFailure("enqueueListCreationCall", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
+    public void enqueuePhotoMapListCreationCall(final ListCallback callback) {
+        String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(false);
+        query += String.format(" and mimeType contains '%s'", "image/");
+        query += " and properties has { key='hasLocateInfo' and value = 'true' }";
+
 
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
                 "name", 1000, null, query, QUERY_FIELDS);

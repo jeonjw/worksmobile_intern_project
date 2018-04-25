@@ -1,6 +1,6 @@
 package com.worksmobile.wmproject.callback;
 
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFile;
 
 public interface ListCallback {
     void onSuccess(DriveFile[] driveFiles);

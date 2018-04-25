@@ -2,7 +2,7 @@ package com.worksmobile.wmproject.ui;
 
 
 import com.worksmobile.wmproject.callback.StateCallback;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFile;
 
 public class TrashFragment extends BaseFragment {
     private static final String MIME_TYPE = null;

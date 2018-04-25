@@ -14,7 +14,7 @@ import com.google.gson.Gson;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.TokenCallback;
-import com.worksmobile.wmproject.retrofit_object.Token;
+import com.worksmobile.wmproject.value_object.Token;
 
 public class LoginActivity extends AppCompatActivity {
 

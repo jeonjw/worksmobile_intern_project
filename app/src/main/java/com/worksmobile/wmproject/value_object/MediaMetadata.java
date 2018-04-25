@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject.retrofit_object;
+package com.worksmobile.wmproject.value_object;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -12,7 +12,7 @@ public class MediaMetadata implements Serializable {
     @SerializedName("time")
     private String time;
     @SerializedName("location")
-    private Location location;
+    private LocationInfo locationInfo;
 
 
     public int getWidth() {
@@ -35,16 +35,16 @@ public class MediaMetadata implements Serializable {
         return time;
     }
 
-    public Location getLocation() {
-        return location;
+    public LocationInfo getLocationInfo() {
+        return locationInfo;
     }
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setLocationInfo(LocationInfo locationInfo) {
+        this.locationInfo = locationInfo;
     }
 
     @Override
     public String toString() {
-        return "width : " + width + ", height : " + height + ", time : " + time + ", location : " + location;
+        return "width : " + width + ", height : " + height + ", time : " + time + ", locationInfo : " + locationInfo;
     }
 }

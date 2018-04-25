@@ -8,7 +8,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFile;
 
 import java.util.List;
 

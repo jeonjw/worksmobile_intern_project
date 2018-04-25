@@ -24,8 +24,8 @@ import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.callback.StateCallback;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
-import com.worksmobile.wmproject.retrofit_object.MediaMetadata;
+import com.worksmobile.wmproject.value_object.DriveFile;
+import com.worksmobile.wmproject.value_object.MediaMetadata;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -167,12 +167,14 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 
                 /**
                  이미지 파일의 위도 경도가 존재한다면 추후 위도 경도 쿼리를 진행하기 위해 properties Update과정을 거친다. (마이그레이션 코드 추후 삭제할것)
-                 조건문 변경해야함, 프로퍼티가 없고, 로케이션이 있을 때 마이그레이션 진행하도록 변경해야함 (4.24 PM 07)
                  */
                 for (DriveFile file : driveFiles) {
                     MediaMetadata mediaMetadata = file.getImageMediaMetadata();
+                    if (file.getProperties() != null) {
+                        System.out.println("GPS Degree From Properties : " + file.getProperties().getLatitude() + " " + file.getProperties().getLongitude());
+                    }
                     if (mediaMetadata != null) {
-                        if (mediaMetadata.getLocation() != null)
+                        if (file.getProperties() == null && mediaMetadata.getLocationInfo() != null)
                             driveHelper.setLocationProperties(file, null);
                     }
                 }

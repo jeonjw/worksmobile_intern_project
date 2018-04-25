@@ -1,7 +1,7 @@
 package com.worksmobile.wmproject.callback;
 
 
-import com.worksmobile.wmproject.retrofit_object.Token;
+import com.worksmobile.wmproject.value_object.Token;
 
 public interface TokenCallback {
     void onSuccess(Token token);

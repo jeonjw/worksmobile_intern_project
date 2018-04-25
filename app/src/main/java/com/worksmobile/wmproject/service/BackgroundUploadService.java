@@ -15,7 +15,7 @@ import android.support.v4.app.NotificationCompat;
 import com.worksmobile.wmproject.BackgroundServiceHandler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
-import com.worksmobile.wmproject.retrofit_object.UploadResult;
+import com.worksmobile.wmproject.value_object.UploadResult;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.ui.MainActivity;
@@ -123,7 +123,7 @@ public class BackgroundUploadService extends Service {
 
     private void printDBWithRoom() {
         for (FileStatus fileStatus : appDatabase.fileDAO().getAll()) {
-            System.out.println("CURSOR " + fileStatus.getId() + " Location : " + fileStatus.getLocation() + " STATUS : " + fileStatus.getStatus() + " DATE : " + fileStatus.getDate());
+            System.out.println("CURSOR " + fileStatus.getId() + " LocationInfo : " + fileStatus.getLocation() + " STATUS : " + fileStatus.getStatus() + " DATE : " + fileStatus.getDate());
         }
     }
 

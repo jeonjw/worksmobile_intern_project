@@ -7,7 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.ViewerPagerAdapter;
-import com.worksmobile.wmproject.retrofit_object.DriveFile;
+import com.worksmobile.wmproject.value_object.DriveFile;
 
 import java.util.ArrayList;
 

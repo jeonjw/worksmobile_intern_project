@@ -1,10 +1,10 @@
-package com.worksmobile.wmproject.retrofit_object;
+package com.worksmobile.wmproject.value_object;
 
 import com.google.gson.annotations.SerializedName;
 
 import java.io.Serializable;
 
-public class Location implements Serializable {
+public class LocationInfo implements Serializable {
     @SerializedName("latitude")
     private double latitude;
     @SerializedName("longitude")
@@ -36,7 +36,7 @@ public class Location implements Serializable {
         this.altitude = altitude;
     }
 
-    public Location(double latitude, double longitude, double altitude) {
+    public LocationInfo(double latitude, double longitude, double altitude) {
         this.latitude = latitude;
         this.longitude = longitude;
         this.altitude = altitude;

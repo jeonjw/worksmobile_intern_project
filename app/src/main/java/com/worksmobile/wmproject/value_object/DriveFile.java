@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject.retrofit_object;
+package com.worksmobile.wmproject.value_object;
 
 import com.google.gson.annotations.SerializedName;
 
@@ -17,6 +17,8 @@ public class DriveFile implements Serializable {
     private String mimeType;
     @SerializedName("description")
     private String description;
+    @SerializedName("properties")
+    private Properties properties;
     @SerializedName("starred")
     private boolean starred;
     @SerializedName("trashed")
@@ -43,16 +45,6 @@ public class DriveFile implements Serializable {
     private MediaMetadata imageMediaMetadata;
     @SerializedName("videoMediaMetadata")
     private MediaMetadata videoMediaMetadata;
-
-    private int progress;
-
-    public int getProgress() {
-        return progress;
-    }
-
-    public void setProgress(int progress) {
-        this.progress = progress;
-    }
 
     public MediaMetadata getImageMediaMetadata() {
         return imageMediaMetadata;
@@ -91,15 +83,12 @@ public class DriveFile implements Serializable {
         this.imageMediaMetadata = imageMediaMetadata;
     }
 
-
-    private boolean isSelected;
-
-    public boolean isSelected() {
-        return isSelected;
+    public Properties getProperties() {
+        return properties;
     }
 
-    public void setSelected(boolean selected) {
-        isSelected = selected;
+    public void setProperties(Properties properties) {
+        this.properties = properties;
     }
 
     public String getKind() {

@@ -8,7 +8,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.worksmobile.wmproject.retrofit_object.DownloadItem;
+import com.worksmobile.wmproject.value_object.DownloadItem;
 
 import java.util.List;
 

@@ -1,4 +1,4 @@
-package com.worksmobile.wmproject.retrofit_object;
+package com.worksmobile.wmproject.value_object;
 
 
 import com.google.gson.annotations.SerializedName;
