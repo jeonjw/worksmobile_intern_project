@@ -170,9 +170,6 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                  */
                 for (DriveFile file : driveFiles) {
                     MediaMetadata mediaMetadata = file.getImageMediaMetadata();
-                    if (file.getProperties() != null) {
-                        System.out.println("GPS Degree From Properties : " + file.getProperties().getLatitude() + " " + file.getProperties().getLongitude());
-                    }
                     if (mediaMetadata != null) {
                         if (file.getProperties() == null && mediaMetadata.getLocationInfo() != null)
                             driveHelper.setLocationProperties(file, null);
@@ -227,7 +224,13 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
             if (takenTime == null)
                 date = createdTime;
             else {
-                date = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.KOREA).parse(takenTime);
+                if (takenTime.matches("\\d{4}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+                    date = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.KOREA).parse(takenTime);
+                } else if (takenTime.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
+                    date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA).parse(takenTime);
+                }
+
+
             }
         } catch (ParseException e) {
             e.printStackTrace();

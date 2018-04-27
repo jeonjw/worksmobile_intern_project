@@ -1,28 +1,34 @@
 package com.worksmobile.wmproject;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
-import android.support.media.ExifInterface;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.media.ExifInterface;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.room.FileStatus;
+import com.worksmobile.wmproject.util.DriveUtils;
+import com.worksmobile.wmproject.util.FileUtils;
 import com.worksmobile.wmproject.value_object.DriveFile;
 import com.worksmobile.wmproject.value_object.DriveFiles;
 import com.worksmobile.wmproject.value_object.LocationInfo;
 import com.worksmobile.wmproject.value_object.Token;
 import com.worksmobile.wmproject.value_object.UploadResult;
-import com.worksmobile.wmproject.room.FileStatus;
-import com.worksmobile.wmproject.util.DriveUtils;
-import com.worksmobile.wmproject.util.FileUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 import okhttp3.MediaType;
 import okhttp3.MultipartBody;
@@ -49,6 +55,7 @@ public class DriveHelper {
     private static final String BASE_URL_API = "https://www.googleapis.com";
     private static final String REDIRECT_URI = "com.worksmobile.wmproject:/oauth2callback";
     private static final String QUERY_FIELDS = "files/properties, files/thumbnailLink, files/id, files/name, files/mimeType, files/createdTime, files/size, files/imageMediaMetadata, files/videoMediaMetadata";
+    private static final String QUERY_FIELDS_GET_FILE = "properties, thumbnailLink, id, name, mimeType, createdTime, size, imageMediaMetadata, videoMediaMetadata";
 
     private String clientId;
     private String clientSecret;
@@ -223,14 +230,43 @@ public class DriveHelper {
         });
     }
 
+    @SuppressLint("DefaultLocale")
     public void setLocationProperties(DriveFile file, final StateCallback callback) {
         JsonObject jsonObject = new JsonObject();
         JsonObject properties = new JsonObject();
         if (file.getImageMediaMetadata().getLocationInfo() != null) {
+            LocationInfo locationInfo = file.getImageMediaMetadata().getLocationInfo();
             properties.addProperty("hasLocateInfo", true);
-            properties.addProperty("longitude", file.getImageMediaMetadata().getLocationInfo().getLongitude());
-            properties.addProperty("latitude", file.getImageMediaMetadata().getLocationInfo().getLatitude());
-            properties.addProperty("altitude", file.getImageMediaMetadata().getLocationInfo().getAltitude());
+
+            DecimalFormat decimalFormat = new DecimalFormat("000.00000");
+
+            double latitude = locationInfo.getLatitude();
+            double longitude = locationInfo.getLongitude();
+
+            properties.addProperty("latitude1", decimalFormat.format(((int) latitude) - ((int) latitude) % 100));
+            properties.addProperty("longitude1", decimalFormat.format(((int) longitude) - ((int) longitude) % 100));
+
+            properties.addProperty("latitude2", decimalFormat.format(((int) latitude) - ((int) latitude) % 10));
+            properties.addProperty("longitude2", decimalFormat.format(((int) longitude) - ((int) longitude) % 10));
+
+            properties.addProperty("latitude3", decimalFormat.format((int) latitude));
+            properties.addProperty("longitude3", decimalFormat.format((int) longitude));
+
+            properties.addProperty("latitude4", decimalFormat.format((long) (latitude * 1e1) / 1e1));
+            properties.addProperty("longitude4", decimalFormat.format((long) (longitude * 1e1) / 1e1));
+
+            properties.addProperty("latitude5", decimalFormat.format((long) (latitude * 1e2) / 1e2));
+            properties.addProperty("longitude5", decimalFormat.format((long) (longitude * 1e2) / 1e2));
+
+            properties.addProperty("latitude6", decimalFormat.format((long) (latitude * 1e3) / 1e3));
+            properties.addProperty("longitude6", decimalFormat.format((long) (longitude * 1e3) / 1e3));
+
+            properties.addProperty("latitude7", decimalFormat.format((long) (latitude * 1e4) / 1e4));
+            properties.addProperty("longitude7", decimalFormat.format((long) (longitude * 1e4) / 1e4));
+
+            properties.addProperty("latitude8", decimalFormat.format((long) (latitude * 1e5) / 1e5));
+            properties.addProperty("longitude8", decimalFormat.format((long) (longitude * 1e5) / 1e5));
+
             jsonObject.add("properties", properties);
         }
 
@@ -268,6 +304,7 @@ public class DriveHelper {
         return driveApi.refreshToken(token.getRefreshToken(), clientId, clientSecret, "refresh_token");
     }
 
+    @SuppressLint("DefaultLocale")
     public Call<UploadResult> createUploadCall(FileStatus fileStatus, Handler handler) {
         File srcFile = new File(fileStatus.getLocation());
         if (!srcFile.exists())
@@ -278,12 +315,39 @@ public class DriveHelper {
         JsonObject jsonObject = new JsonObject();
         jsonObject.addProperty("name", srcFile.getName());
 
+
         if (locationInfo != null) {
             JsonObject properties = new JsonObject();
             properties.addProperty("hasLocateInfo", true);
-            properties.addProperty("latitude", locationInfo.getLatitude());
-            properties.addProperty("longitude", locationInfo.getLongitude());
-            properties.addProperty("altitude", locationInfo.getAltitude());
+            DecimalFormat decimalFormat = new DecimalFormat("000.00000");
+
+            double latitude = locationInfo.getLatitude();
+            double longitude = locationInfo.getLongitude();
+
+            properties.addProperty("latitude1", decimalFormat.format(((int) latitude) - ((int) latitude) % 100));
+            properties.addProperty("longitude1", decimalFormat.format(((int) longitude) - ((int) longitude) % 100));
+
+            properties.addProperty("latitude2", decimalFormat.format(((int) latitude) - ((int) latitude) % 10));
+            properties.addProperty("longitude2", decimalFormat.format(((int) longitude) - ((int) longitude) % 10));
+
+            properties.addProperty("latitude3", decimalFormat.format((int) latitude));
+            properties.addProperty("longitude3", decimalFormat.format((int) longitude));
+
+            properties.addProperty("latitude4", decimalFormat.format((long) (latitude * 1e1) / 1e1));
+            properties.addProperty("longitude4", decimalFormat.format((long) (longitude * 1e1) / 1e1));
+
+            properties.addProperty("latitude5", decimalFormat.format((long) (latitude * 1e2) / 1e2));
+            properties.addProperty("longitude5", decimalFormat.format((long) (longitude * 1e2) / 1e2));
+
+            properties.addProperty("latitude6", decimalFormat.format((long) (latitude * 1e3) / 1e3));
+            properties.addProperty("longitude6", decimalFormat.format((long) (longitude * 1e3) / 1e3));
+
+            properties.addProperty("latitude7", decimalFormat.format((long) (latitude * 1e4) / 1e4));
+            properties.addProperty("longitude7", decimalFormat.format((long) (longitude * 1e4) / 1e4));
+
+            properties.addProperty("latitude8", decimalFormat.format((long) (latitude * 1e5) / 1e5));
+            properties.addProperty("longitude8", decimalFormat.format((long) (longitude * 1e5) / 1e5));
+
             jsonObject.add("properties", properties);
         }
         RequestBody propertiyBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
@@ -329,8 +393,6 @@ public class DriveHelper {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
-        System.out.println("GPS DEGREE : " + latitudeDegree + ", " + longitudeDegree + ", " + altitudeDegree);
         return locationInfo;
     }
 
@@ -434,10 +496,49 @@ public class DriveHelper {
         });
     }
 
-    public void enqueuePhotoMapListCreationCall(final ListCallback callback) {
+    public void getPhotoIdAndProperties(String latQuery, String lngQuery, final ListCallback callback) {
         String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(false);
         query += String.format(" and mimeType contains '%s'", "image/");
         query += " and properties has { key='hasLocateInfo' and value = 'true' }";
+//        query += " and " + latQuery;
+//        query += " and " + lngQuery;
+
+
+        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
+                "name", 1000, null, query, "files/name, files/properties");
+        call.enqueue(new Callback<DriveFiles>() {
+            @Override
+            public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
+                String message = DriveUtils.printResponse("enqueueListCreationCall", response);
+
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(response.body().getFiles());
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
+                String message = DriveUtils.printFailure("enqueueListCreationCall", t);
+                if (callback != null) {
+                    callback.onFailure(message);
+                }
+            }
+        });
+    }
+
+    public void enqueuePhotoMapListCreationCall(String latQuery, String lngQuery, final ListCallback callback) {
+        String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(false);
+        query += String.format(" and mimeType contains '%s'", "image/");
+        query += " and properties has { key='hasLocateInfo' and value = 'true' }";
+//        query += " and " + latQuery;
+//        query += " and " + lngQuery;
 
 
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
@@ -466,6 +567,40 @@ public class DriveHelper {
                 }
             }
         });
+    }
+
+    public void getFileListFromName(List<String> idList, final ListCallback callback) {
+        StringBuilder query = new StringBuilder();
+        query.append(String.format("name = '%s'", idList.get(0)));
+
+        for (int i = 1; i < idList.size(); i++) {
+            query.append(String.format(" or name = '%s'", idList.get(i)));
+        }
+
+        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
+                "name", 1000, null, query.toString(), QUERY_FIELDS);
+
+        call.enqueue(new Callback<DriveFiles>() {
+            @Override
+            public void onResponse(Call<DriveFiles> call, Response<DriveFiles> response) {
+                String message = DriveUtils.printResponse("getFielFromName", response);
+                if (message == SUCCESS) {
+                    if (callback != null) {
+                        callback.onSuccess(response.body().getFiles());
+                    }
+                } else {
+                    if (callback != null) {
+                        callback.onFailure(message);
+                    }
+                }
+            }
+
+            @Override
+            public void onFailure(Call<DriveFiles> call, Throwable t) {
+
+            }
+        });
+
     }
 
     public void enqueueFileInfoCall(String fileId, final StateCallback callback) {

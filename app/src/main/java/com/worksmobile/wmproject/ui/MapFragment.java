@@ -33,7 +33,10 @@ import com.google.android.gms.maps.MapView;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.maps.android.SphericalUtil;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.GlideApp;
 import com.worksmobile.wmproject.R;
@@ -41,16 +44,18 @@ import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.value_object.DriveFile;
 import com.worksmobile.wmproject.value_object.MarkerItem;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static android.content.Context.LOCATION_SERVICE;
 
 public class MapFragment extends Fragment
         implements OnMapReadyCallback,
         GoogleMap.OnCameraIdleListener,
-        GoogleMap.OnCameraMoveStartedListener,
-        GoogleMap.OnCameraMoveCanceledListener {
+        GoogleMap.OnCameraMoveStartedListener {
     private static final String TAG = "MAP_FRAGMENT";
 
     private MapView mapView;
@@ -59,8 +64,7 @@ public class MapFragment extends Fragment
     private ImageView markerImageView;
     private boolean locationPermmisionGranted;
     private LocationManager locationManager;
-    private List<MarkerItem> markerList;
-
+    private Set<String> history;
     private static final String[] PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION};
 
     @Nullable
@@ -68,6 +72,7 @@ public class MapFragment extends Fragment
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_map, container, false);
+        history = new HashSet<>();
         mapView = view.findViewById(R.id.map_view);
         mapView.getMapAsync(this);
         locationManager = (LocationManager) getActivity().getSystemService(LOCATION_SERVICE);
@@ -80,33 +85,64 @@ public class MapFragment extends Fragment
 
 
         setCustomMarkerView();
-        requestWholeList();
-
         return view;
     }
 
-//    private void getSampleMarkerItems() {
-//        List<MarkerItem> sampleList = new ArrayList<>();
-//        sampleList.add(new MarkerItem(37.538523, 126.96568, "http://www.myiconfinder.com/uploads/iconsets/256-256-a5485b563efc4511e0cd8bd04ad0fe9e.png"));
-//        sampleList.add(new MarkerItem(37.527523, 126.96568, "http://www.myiconfinder.com/uploads/iconsets/256-256-a5485b563efc4511e0cd8bd04ad0fe9e.png"));
-//        sampleList.add(new MarkerItem(37.549523, 126.96568, "http://www.myiconfinder.com/uploads/iconsets/256-256-a5485b563efc4511e0cd8bd04ad0fe9e.png"));
-//        sampleList.add(new MarkerItem(37.538523, 126.95768, "http://www.myiconfinder.com/uploads/iconsets/256-256-a5485b563efc4511e0cd8bd04ad0fe9e.png"));
-//
-//        for (MarkerItem markerItem : sampleList) {
-//            addMarker(markerItem);
-//        }
-//    }
-
-    private void requestWholeList() {
+    private void requestPhotoIdAndProperties(String latQuery, String lngQuery) {
         DriveHelper driveHelper = new DriveHelper(getActivity());
-        markerList = new ArrayList<>();
 
-        driveHelper.enqueuePhotoMapListCreationCall(new ListCallback() {
+        driveHelper.getPhotoIdAndProperties(latQuery, lngQuery, new ListCallback() {
+            @Override
+            public void onSuccess(DriveFile[] driveFiles) {
+                double limit = SphericalUtil.computeDistanceBetween(googleMap.getCameraPosition().target, googleMap.getProjection().getVisibleRegion().farRight);
+                List<String> fetchList = new ArrayList<>();
+
+                for (DriveFile file : driveFiles) {
+                    LatLng latLng = new LatLng(file.getProperties().getLatitude8(), file.getProperties().getLongitude8());
+                    if (SphericalUtil.computeDistanceBetween(googleMap.getCameraPosition().target, latLng) <= limit) {
+                        if (!history.contains(file.getName()))
+                            fetchList.add(file.getName());
+                    }
+                }
+
+                System.out.println("Fetch Size : " + fetchList.size());
+                if (fetchList.size() != 0) {
+                    driveHelper.getFileListFromName(fetchList, new ListCallback() {
+                        @Override
+                        public void onSuccess(DriveFile[] driveFiles) {
+                            for (DriveFile file : driveFiles) {
+                                history.add(file.getName());
+                                addMarker(new MarkerItem(file.getProperties().getLatitude8(), file.getProperties().getLongitude8(), file.getThumbnailLink()));
+                            }
+                            System.out.println("ADD FINISH");
+                        }
+
+                        @Override
+                        public void onFailure(String msg) {
+
+                        }
+                    });
+                }
+            }
+
+            @Override
+            public void onFailure(String msg) {
+
+            }
+        });
+    }
+
+
+    private void requestPhotoListWithDegree(String latQuery, String lngQuery) {
+        DriveHelper driveHelper = new DriveHelper(getActivity());
+
+        driveHelper.enqueuePhotoMapListCreationCall(latQuery, lngQuery, new ListCallback() {
             @Override
             public void onSuccess(DriveFile[] driveFiles) {
                 for (DriveFile file : driveFiles) {
-                    addMarker(new MarkerItem(file.getProperties().getLatitude(), file.getProperties().getLongitude(), file.getThumbnailLink()));
+                    addMarker(new MarkerItem(file.getProperties().getLatitude8(), file.getProperties().getLongitude8(), file.getThumbnailLink()));
                 }
+                System.out.println("ADD FINISH");
             }
 
             @Override
@@ -119,15 +155,12 @@ public class MapFragment extends Fragment
     private void addMarker(MarkerItem markerItem) {
         LatLng position = new LatLng(markerItem.getLatitude(), markerItem.getLongitude());
         String imageUrl = markerItem.getImageUrl();
-
-        System.out.println("POSITION : " + markerItem.getLatitude() + " " + markerItem.getLongitude());
         MarkerOptions markerOptions = new MarkerOptions();
         markerOptions.title("Test");
         markerOptions.position(position);
 
-        GlideApp.with(this)
+        GlideApp.with(getActivity())
                 .load(imageUrl)
-                .override(80, 80)
                 .fitCenter()
                 .into(new SimpleTarget<Drawable>() {
                     @Override
@@ -166,22 +199,21 @@ public class MapFragment extends Fragment
         this.googleMap = googleMap;
         this.googleMap.setOnCameraIdleListener(this);
         this.googleMap.setOnCameraMoveStartedListener(this);
-        this.googleMap.setOnCameraMoveCanceledListener(this);
+        this.googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
+            @Override
+            public boolean onMarkerClick(Marker marker) {
+                System.out.println("마커 클릭 : " + marker.getPosition().latitude + ", " + marker.getPosition().longitude);
+                return false;
+            }
+        });
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(37.35944, 127.10527)));
+        googleMap.animateCamera(CameraUpdateFactory.zoomTo(9));
 
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 double lat = location.getLatitude();
                 double lng = location.getLongitude();
-                LatLng latLng = new LatLng(lat, lng);
-                MarkerOptions markerOptions = new MarkerOptions();
-                markerOptions.position(latLng);
-                markerOptions.title("내위치");
-                markerOptions.snippet("내위치");
-                googleMap.addMarker(markerOptions);
-                googleMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
-                googleMap.animateCamera(CameraUpdateFactory.zoomTo(9));
-                Log.d(TAG, "latitude: " + lat + ", longitude: " + lng);
+                Log.d(TAG, "내위치 latitude: " + lat + ", longitude: " + lng);
             }
 
             @Override
@@ -208,8 +240,8 @@ public class MapFragment extends Fragment
         }
 
         updateLocationUI();
-//        googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(37.35944, 127.10527)));
-//        googleMap.animateCamera(CameraUpdateFactory.zoomTo(7));
+
+//        requestPhotoListWithDegree(null, null);
 
     }
 
@@ -222,6 +254,7 @@ public class MapFragment extends Fragment
             googleMap.setMyLocationEnabled(false);
             googleMap.getUiSettings().setMyLocationButtonEnabled(false);
         }
+        googleMap.getUiSettings().setRotateGesturesEnabled(false);
     }
 
     @Override
@@ -265,25 +298,60 @@ public class MapFragment extends Fragment
         super.onLowMemory();
     }
 
+    @SuppressLint("DefaultLocale")
     @Override
     public void onCameraIdle() {
-        Toast.makeText(getActivity(), "Camera movement Idle.",
-                Toast.LENGTH_SHORT).show();
+        Toast.makeText(getActivity(), "Camera movement Idle.", Toast.LENGTH_SHORT).show();
         LatLng latLng = googleMap.getCameraPosition().target;
+        LatLngBounds latLngBounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
         System.out.println("CAMERA IDLE : " + latLng.latitude + ", " + latLng.longitude);
-        System.out.println("CAMERA MAX BOUNDS N/E Lati: " + googleMap.getProjection().getVisibleRegion().latLngBounds.northeast.latitude);
-        System.out.println("CAMERA MAX BOUNDS N/E Longi: " + googleMap.getProjection().getVisibleRegion().latLngBounds.northeast.longitude);
-        System.out.println("CAMERA MAX BOUNDS S/W Lati: " + googleMap.getProjection().getVisibleRegion().latLngBounds.southwest.latitude);
-        System.out.println("CAMERA MAX BOUNDS S/W Longi: " + googleMap.getProjection().getVisibleRegion().latLngBounds.southwest.longitude);
+        DecimalFormat decimalFormat = new DecimalFormat("000.00000");
+
+        System.out.println("CAMERA MAX BOUNDS N/E Lati: " + decimalFormat.format(latLngBounds.northeast.latitude));
+        System.out.println("CAMERA MAX BOUNDS N/E Longi: " + decimalFormat.format(latLngBounds.northeast.longitude));
+        System.out.println("CAMERA MAX BOUNDS S/W Lati: " + decimalFormat.format(latLngBounds.southwest.latitude));
+        System.out.println("CAMERA MAX BOUNDS S/W Longi: " + decimalFormat.format(latLngBounds.southwest.longitude));
+        System.out.println("ZOOM LEVEL : " + googleMap.getCameraPosition().zoom);
+
+
+        String latQuery = matchGeoRange("latitude", decimalFormat.format(latLngBounds.northeast.latitude), decimalFormat.format(latLngBounds.southwest.latitude));
+        String lngQuery = matchGeoRange("longitude", decimalFormat.format(latLngBounds.northeast.longitude), decimalFormat.format(latLngBounds.southwest.longitude));
+
+        System.out.println("lat Query : " + latQuery);
+        System.out.println("lng Query : " + lngQuery);
+
+        requestPhotoIdAndProperties(latQuery, lngQuery);
+//        requestPhotoListWithDegree(null, null);
 
     }
 
-    @Override
-    public void onCameraMoveCanceled() {
-        Toast.makeText(getActivity(), "Camera movement canceled.",
-                Toast.LENGTH_SHORT).show();
-        LatLng latLng = googleMap.getCameraPosition().target;
-        System.out.println("CAMERA CANCEL : " + latLng.latitude + ", " + latLng.longitude);
+    private String matchGeoRange(String key, String degree1, String degree2) {
+        StringBuilder builder = new StringBuilder();
+        boolean finish = false;
+        int level = 0;
+        for (int i = 0; i < degree1.length(); i++) {
+            if (!finish && degree1.charAt(i) == degree2.charAt(i)) {
+                builder.append(degree1.charAt(i));
+                if (degree1.charAt(i) != '.') {
+                    level++;
+                }
+
+            } else {
+                finish = true;
+                if (degree1.charAt(i) == '.') {
+                    builder.append(".");
+                } else {
+                    builder.append("0");
+                }
+            }
+        }
+
+        String newDegree = builder.toString();
+        if (newDegree.length() > 0 && newDegree.charAt(newDegree.length() - 1) == '.') {
+            newDegree = newDegree.substring(0, newDegree.length() - 1);
+        }
+        @SuppressLint("DefaultLocale") String query = String.format("properties has { key='%s%d' and value = '%s' }", key, level, newDegree);
+        return query;
     }
 
 
