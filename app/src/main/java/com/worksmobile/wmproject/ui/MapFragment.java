@@ -5,10 +5,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
-import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
@@ -17,7 +14,6 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,11 +30,16 @@ import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.maps.android.SphericalUtil;
+import com.google.maps.android.clustering.Cluster;
+import com.google.maps.android.clustering.ClusterItem;
+import com.google.maps.android.clustering.ClusterManager;
+import com.google.maps.android.clustering.view.DefaultClusterRenderer;
+import com.google.maps.android.ui.IconGenerator;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.GlideApp;
+import com.worksmobile.wmproject.MultiDrawable;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.value_object.DriveFile;
@@ -55,27 +56,111 @@ import static android.content.Context.LOCATION_SERVICE;
 public class MapFragment extends Fragment
         implements OnMapReadyCallback,
         GoogleMap.OnCameraIdleListener,
-        GoogleMap.OnCameraMoveStartedListener {
+        ClusterManager.OnClusterClickListener<MarkerItem>,
+        ClusterManager.OnClusterInfoWindowClickListener<MarkerItem>,
+        ClusterManager.OnClusterItemClickListener<MarkerItem>,
+        ClusterManager.OnClusterItemInfoWindowClickListener<MarkerItem> {
+
     private static final String TAG = "MAP_FRAGMENT";
 
     private MapView mapView;
     private GoogleMap googleMap;
-    private View markerView;
-    private ImageView markerImageView;
     private boolean locationPermmisionGranted;
-    private LocationManager locationManager;
     private Set<String> history;
     private static final String[] PERMISSIONS = {Manifest.permission.ACCESS_FINE_LOCATION};
+    private ClusterManager<MarkerItem> clusterManager;
+
+    @Override
+    public void onCameraIdle() {
+        clusterManager.onCameraIdle();
+        Toast.makeText(getActivity(), "Camera movement Idle.", Toast.LENGTH_SHORT).show();
+        LatLng latLng = googleMap.getCameraPosition().target;
+        LatLngBounds latLngBounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
+        System.out.println("CAMERA IDLE : " + latLng.latitude + ", " + latLng.longitude);
+        DecimalFormat decimalFormat = new DecimalFormat("000.00000");
+
+        System.out.println("CAMERA MAX BOUNDS N/E Lati: " + decimalFormat.format(latLngBounds.northeast.latitude));
+        System.out.println("CAMERA MAX BOUNDS N/E Longi: " + decimalFormat.format(latLngBounds.northeast.longitude));
+        System.out.println("CAMERA MAX BOUNDS S/W Lati: " + decimalFormat.format(latLngBounds.southwest.latitude));
+        System.out.println("CAMERA MAX BOUNDS S/W Longi: " + decimalFormat.format(latLngBounds.southwest.longitude));
+        System.out.println("ZOOM LEVEL : " + googleMap.getCameraPosition().zoom);
+
+        String latQuery = matchGeoRange("latitude", decimalFormat.format(latLngBounds.northeast.latitude), decimalFormat.format(latLngBounds.southwest.latitude));
+        String lngQuery = matchGeoRange("longitude", decimalFormat.format(latLngBounds.northeast.longitude), decimalFormat.format(latLngBounds.southwest.longitude));
+
+        System.out.println("lat Query : " + latQuery);
+        System.out.println("lng Query : " + lngQuery);
+
+        requestPhotoIdAndProperties(latQuery, lngQuery);
+    }
+
+
+    private class PersonRenderer extends DefaultClusterRenderer<MarkerItem> {
+        private final IconGenerator mIconGenerator = new IconGenerator(getActivity());
+        private final IconGenerator mClusterIconGenerator = new IconGenerator(getActivity());
+        private final ImageView mImageView;
+        private final ImageView mClusterImageView;
+        private final int mDimension;
+
+        public PersonRenderer() {
+            super(getActivity(), googleMap, clusterManager);
+
+            View multiProfile = getLayoutInflater().inflate(R.layout.multi_profile, null);
+            mClusterIconGenerator.setContentView(multiProfile);
+            mClusterImageView = multiProfile.findViewById(R.id.multi_profile_imageview);
+
+            mImageView = new ImageView(getActivity());
+            mDimension = (int) getResources().getDimension(R.dimen.custom_profile_image);
+            mImageView.setLayoutParams(new ViewGroup.LayoutParams(mDimension, mDimension));
+            int padding = (int) getResources().getDimension(R.dimen.custom_profile_padding);
+            mImageView.setPadding(padding, padding, padding, padding);
+            mIconGenerator.setContentView(mImageView);
+        }
+
+        @Override
+        protected void onBeforeClusterItemRendered(MarkerItem markerItem, MarkerOptions markerOptions) {
+            mImageView.setImageDrawable(markerItem.getDrawable());
+            Bitmap icon = mIconGenerator.makeIcon();
+            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(icon)).title("test");
+        }
+
+        @Override
+        protected void onBeforeClusterRendered(Cluster<MarkerItem> cluster, MarkerOptions markerOptions) {
+            List<Drawable> profilePhotos = new ArrayList<Drawable>(Math.min(4, cluster.getSize()));
+            int width = mDimension;
+            int height = mDimension;
+
+            for (MarkerItem p : cluster.getItems()) {
+                // Draw 4 at most.
+                if (profilePhotos.size() == 4) break;
+                Drawable drawable = p.getDrawable();
+                drawable.setBounds(0, 0, width, height);
+                profilePhotos.add(drawable);
+            }
+            MultiDrawable multiDrawable = new MultiDrawable(profilePhotos);
+            multiDrawable.setBounds(0, 0, width, height);
+
+            mClusterImageView.setImageDrawable(multiDrawable);
+            Bitmap icon = mClusterIconGenerator.makeIcon(String.valueOf(cluster.getSize()));
+            markerOptions.icon(BitmapDescriptorFactory.fromBitmap(icon));
+        }
+
+        @Override
+        protected boolean shouldRenderAsCluster(Cluster cluster) {
+            return cluster.getSize() > 1;
+        }
+    }
 
     @Nullable
     @Override
-    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup
+            container, @Nullable Bundle savedInstanceState) {
         Log.d(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_map, container, false);
         history = new HashSet<>();
         mapView = view.findViewById(R.id.map_view);
         mapView.getMapAsync(this);
-        locationManager = (LocationManager) getActivity().getSystemService(LOCATION_SERVICE);
+        LocationManager locationManager = (LocationManager) getActivity().getSystemService(LOCATION_SERVICE);
         boolean enabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 
         if (!enabled) {
@@ -83,8 +168,6 @@ public class MapFragment extends Fragment
             startActivity(intent);
         }
 
-
-        setCustomMarkerView();
         return view;
     }
 
@@ -112,9 +195,10 @@ public class MapFragment extends Fragment
                         public void onSuccess(DriveFile[] driveFiles) {
                             for (DriveFile file : driveFiles) {
                                 history.add(file.getName());
-                                addMarker(new MarkerItem(file.getProperties().getLatitude8(), file.getProperties().getLongitude8(), file.getThumbnailLink()));
+                                addMarker(new LatLng(file.getProperties().getLatitude8(), file.getProperties().getLongitude8()), file.getThumbnailLink());
                             }
                             System.out.println("ADD FINISH");
+
                         }
 
                         @Override
@@ -132,117 +216,47 @@ public class MapFragment extends Fragment
         });
     }
 
-
-    private void requestPhotoListWithDegree(String latQuery, String lngQuery) {
-        DriveHelper driveHelper = new DriveHelper(getActivity());
-
-        driveHelper.enqueuePhotoMapListCreationCall(latQuery, lngQuery, new ListCallback() {
-            @Override
-            public void onSuccess(DriveFile[] driveFiles) {
-                for (DriveFile file : driveFiles) {
-                    addMarker(new MarkerItem(file.getProperties().getLatitude8(), file.getProperties().getLongitude8(), file.getThumbnailLink()));
-                }
-                System.out.println("ADD FINISH");
-            }
-
-            @Override
-            public void onFailure(String msg) {
-
-            }
-        });
-    }
-
-    private void addMarker(MarkerItem markerItem) {
-        LatLng position = new LatLng(markerItem.getLatitude(), markerItem.getLongitude());
-        String imageUrl = markerItem.getImageUrl();
-        MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.title("Test");
-        markerOptions.position(position);
-
+    private void addMarker(LatLng latLng, String imageUrl) {
         GlideApp.with(getActivity())
                 .load(imageUrl)
+                .override(200, 200)
                 .fitCenter()
                 .into(new SimpleTarget<Drawable>() {
                     @Override
                     public void onResourceReady(@NonNull Drawable resource, @Nullable Transition<? super Drawable> transition) {
-                        markerImageView.setImageDrawable(resource);
-                        markerOptions.icon(BitmapDescriptorFactory.fromBitmap(createDrawableFromView(markerView)));
-                        googleMap.addMarker(markerOptions);
+                        clusterManager.addItem(new MarkerItem(latLng, resource));
+                        clusterManager.cluster();
                     }
                 });
-    }
-
-    private Bitmap createDrawableFromView(View view) {
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        getActivity().getWindowManager().getDefaultDisplay().getMetrics(displayMetrics);
-        view.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        view.measure(displayMetrics.widthPixels, displayMetrics.heightPixels);
-        view.layout(0, 0, displayMetrics.widthPixels, displayMetrics.heightPixels);
-        view.buildDrawingCache();
-        Bitmap bitmap = Bitmap.createBitmap(view.getMeasuredWidth(), view.getMeasuredHeight(), Bitmap.Config.ARGB_8888);
-
-        Canvas canvas = new Canvas(bitmap);
-        view.draw(canvas);
-
-        return bitmap;
-    }
-
-
-    private void setCustomMarkerView() {
-        markerView = LayoutInflater.from(getActivity()).inflate(R.layout.marker_item, null);
-        markerImageView = markerView.findViewById(R.id.marker_imageview);
     }
 
     @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "OnMapReady");
-        this.googleMap = googleMap;
-        this.googleMap.setOnCameraIdleListener(this);
-        this.googleMap.setOnCameraMoveStartedListener(this);
-        this.googleMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
-            @Override
-            public boolean onMarkerClick(Marker marker) {
-                System.out.println("마커 클릭 : " + marker.getPosition().latitude + ", " + marker.getPosition().longitude);
-                return false;
-            }
-        });
-        googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(37.35944, 127.10527)));
-        googleMap.animateCamera(CameraUpdateFactory.zoomTo(9));
-
-        LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                double lat = location.getLatitude();
-                double lng = location.getLongitude();
-                Log.d(TAG, "내위치 latitude: " + lat + ", longitude: " + lng);
-            }
-
-            @Override
-            public void onStatusChanged(String s, int i, Bundle bundle) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String s) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String s) {
-
-            }
-        };
-
         if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             locationPermmisionGranted = true;
-            locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, locationListener, null);
         } else {
             ActivityCompat.requestPermissions(getActivity(), PERMISSIONS, 101);
         }
 
+        this.googleMap = googleMap;
+        clusterManager = new ClusterManager<>(getActivity(), this.googleMap);
+        this.googleMap.moveCamera(CameraUpdateFactory.newLatLng(new LatLng(37.35944, 127.10527)));
+        this.googleMap.animateCamera(CameraUpdateFactory.zoomTo(10));
+
+
+        clusterManager = new ClusterManager<>(getActivity(), this.googleMap);
+        clusterManager.setRenderer(new PersonRenderer());
+        this.googleMap.setOnCameraIdleListener(this);
+        this.googleMap.setOnMarkerClickListener(clusterManager);
+        this.googleMap.setOnInfoWindowClickListener(clusterManager);
+        clusterManager.setOnClusterClickListener(this);
+        clusterManager.setOnClusterInfoWindowClickListener(this);
+        clusterManager.setOnClusterItemClickListener(this);
+        clusterManager.setOnClusterItemInfoWindowClickListener(this);
+
+
         updateLocationUI();
-
-//        requestPhotoListWithDegree(null, null);
-
     }
 
     @SuppressLint("MissingPermission")
@@ -254,6 +268,7 @@ public class MapFragment extends Fragment
             googleMap.setMyLocationEnabled(false);
             googleMap.getUiSettings().setMyLocationButtonEnabled(false);
         }
+
         googleMap.getUiSettings().setRotateGesturesEnabled(false);
     }
 
@@ -298,32 +313,6 @@ public class MapFragment extends Fragment
         super.onLowMemory();
     }
 
-    @SuppressLint("DefaultLocale")
-    @Override
-    public void onCameraIdle() {
-        Toast.makeText(getActivity(), "Camera movement Idle.", Toast.LENGTH_SHORT).show();
-        LatLng latLng = googleMap.getCameraPosition().target;
-        LatLngBounds latLngBounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
-        System.out.println("CAMERA IDLE : " + latLng.latitude + ", " + latLng.longitude);
-        DecimalFormat decimalFormat = new DecimalFormat("000.00000");
-
-        System.out.println("CAMERA MAX BOUNDS N/E Lati: " + decimalFormat.format(latLngBounds.northeast.latitude));
-        System.out.println("CAMERA MAX BOUNDS N/E Longi: " + decimalFormat.format(latLngBounds.northeast.longitude));
-        System.out.println("CAMERA MAX BOUNDS S/W Lati: " + decimalFormat.format(latLngBounds.southwest.latitude));
-        System.out.println("CAMERA MAX BOUNDS S/W Longi: " + decimalFormat.format(latLngBounds.southwest.longitude));
-        System.out.println("ZOOM LEVEL : " + googleMap.getCameraPosition().zoom);
-
-
-        String latQuery = matchGeoRange("latitude", decimalFormat.format(latLngBounds.northeast.latitude), decimalFormat.format(latLngBounds.southwest.latitude));
-        String lngQuery = matchGeoRange("longitude", decimalFormat.format(latLngBounds.northeast.longitude), decimalFormat.format(latLngBounds.southwest.longitude));
-
-        System.out.println("lat Query : " + latQuery);
-        System.out.println("lng Query : " + lngQuery);
-
-        requestPhotoIdAndProperties(latQuery, lngQuery);
-//        requestPhotoListWithDegree(null, null);
-
-    }
 
     private String matchGeoRange(String key, String degree1, String degree2) {
         StringBuilder builder = new StringBuilder();
@@ -354,9 +343,38 @@ public class MapFragment extends Fragment
         return query;
     }
 
+    @Override
+    public boolean onClusterClick(Cluster<MarkerItem> cluster) {
+        LatLngBounds.Builder builder = LatLngBounds.builder();
+        for (ClusterItem item : cluster.getItems()) {
+            builder.include(item.getPosition());
+        }
+        // Get the LatLngBounds
+        final LatLngBounds bounds = builder.build();
+
+        // Animate camera to the bounds
+        try {
+            googleMap.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 100));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return true;
+    }
 
     @Override
-    public void onCameraMoveStarted(int i) {
+    public void onClusterInfoWindowClick(Cluster<MarkerItem> cluster) {
 
     }
+
+    @Override
+    public boolean onClusterItemClick(MarkerItem markerItem) {
+        return false;
+    }
+
+    @Override
+    public void onClusterItemInfoWindowClick(MarkerItem markerItem) {
+
+    }
+
 }

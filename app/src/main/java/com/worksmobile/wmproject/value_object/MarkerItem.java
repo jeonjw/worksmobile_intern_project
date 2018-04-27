@@ -10,19 +10,16 @@ public class MarkerItem implements ClusterItem {
     private String imageUrl;
     private LatLng latLng;
     private Drawable drawable;
-    private int resouceId;
 
-    public MarkerItem(double latitude, double longitude, int resourceId) {
+    public MarkerItem(double latitude, double longitude, String imageUrl) {
+
         latLng = new LatLng(latitude, longitude);
-        this.resouceId = resourceId;
+        this.imageUrl = imageUrl;
     }
 
-    public int getResouceId() {
-        return resouceId;
-    }
-
-    public void setResouceId(int resouceId) {
-        this.resouceId = resouceId;
+    public MarkerItem(LatLng latLng, Drawable resouceId) {
+        this.latLng = latLng;
+        this.drawable = resouceId;
     }
 
     public Drawable getDrawable() {
@@ -33,11 +30,7 @@ public class MarkerItem implements ClusterItem {
         this.drawable = drawable;
     }
 
-    public MarkerItem(double latitude, double longitude, String imageUrl) {
 
-        latLng = new LatLng(latitude, longitude);
-        this.imageUrl = imageUrl;
-    }
 
     public double getLatitude() {
         return latLng.latitude;
