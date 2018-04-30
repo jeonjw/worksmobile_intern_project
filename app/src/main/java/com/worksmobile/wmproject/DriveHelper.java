@@ -500,45 +500,8 @@ public class DriveHelper {
         String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(false);
         query += String.format(" and mimeType contains '%s'", "image/");
         query += " and properties has { key='hasLocateInfo' and value = 'true' }";
-//        query += " and " + latQuery;
-//        query += " and " + lngQuery;
-
-
-        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
-                "name", 1000, null, query, "files/name, files/properties");
-        call.enqueue(new Callback<DriveFiles>() {
-            @Override
-            public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
-                String message = DriveUtils.printResponse("enqueueListCreationCall", response);
-
-                if (message == SUCCESS) {
-                    if (callback != null) {
-                        callback.onSuccess(response.body().getFiles());
-                    }
-                } else {
-                    if (callback != null) {
-                        callback.onFailure(message);
-                    }
-                }
-
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("enqueueListCreationCall", t);
-                if (callback != null) {
-                    callback.onFailure(message);
-                }
-            }
-        });
-    }
-
-    public void enqueuePhotoMapListCreationCall(String latQuery, String lngQuery, final ListCallback callback) {
-        String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(false);
-        query += String.format(" and mimeType contains '%s'", "image/");
-        query += " and properties has { key='hasLocateInfo' and value = 'true' }";
-//        query += " and " + latQuery;
-//        query += " and " + lngQuery;
+        query += " and " + latQuery;
+        query += " and " + lngQuery;
 
 
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
@@ -547,6 +510,7 @@ public class DriveHelper {
             @Override
             public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
                 String message = DriveUtils.printResponse("enqueueListCreationCall", response);
+
                 if (message == SUCCESS) {
                     if (callback != null) {
                         callback.onSuccess(response.body().getFiles());
@@ -568,6 +532,7 @@ public class DriveHelper {
             }
         });
     }
+
 
     public void getFileListFromName(List<String> idList, final ListCallback callback) {
         StringBuilder query = new StringBuilder();

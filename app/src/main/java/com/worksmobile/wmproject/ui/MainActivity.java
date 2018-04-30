@@ -61,6 +61,7 @@ public class MainActivity extends AppCompatActivity
     private boolean selectMode;
     private MenuItem selectModeMenuItem;
     private MenuItem selectAllMenuItem;
+    private MenuItem toolbarSortingMenuItem;
     private FloatingActionButton floatingActionButton;
     private String currentToolbarTitle;
 
@@ -86,6 +87,7 @@ public class MainActivity extends AppCompatActivity
             closeSelectMode();
         }
     };
+
 
     private void closeSelectMode() {
         toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
@@ -275,11 +277,10 @@ public class MainActivity extends AppCompatActivity
                 toolbarTextView.setText(currentToolbarTitle);
                 break;
             case R.id.nav_photo_map:
-                fragment = new MapFragment();
                 currentToolbarTitle = "사진 지도";
                 toolbarTextView.setText(currentToolbarTitle);
                 drawerLayout.closeDrawer(GravityCompat.START);
-                getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).commit();
+                getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, new MapFragment()).commit();
                 return true;
             case R.id.nav_video:
                 fragment = new VideoFragment();
@@ -314,6 +315,7 @@ public class MainActivity extends AppCompatActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
         selectModeMenuItem = menu.findItem(R.id.toolbar_check_button);
+        toolbarSortingMenuItem = menu.findItem(R.id.toolbar_sorting_button);
         selectAllMenuItem = menu.findItem(R.id.toolbar_select_all);
         return true;
     }

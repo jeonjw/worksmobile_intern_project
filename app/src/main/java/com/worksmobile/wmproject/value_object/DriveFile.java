@@ -231,4 +231,32 @@ public class DriveFile implements Serializable {
             return "DriveFile <" + "id = " + id +
                     ", name = " + name + ", mimeType = " + mimeType + ", thumbnailLink = " + thumbnailLink + ", size = " + size + '>';
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj == null) {
+            return false;
+        }
+        if (this.getClass() != obj.getClass()) {
+            return false;
+        }
+        if (this == obj) {
+            return true;
+        }
+        DriveFile file = (DriveFile) obj;
+        if (this.id.equals(file.getId())) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
+        return result;
+    }
+
+
 }
