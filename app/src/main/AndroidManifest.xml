@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.DOWNLOAD_WITHOUT_NOTIFICATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <permission
         android:name="com.worksmobile.wm_project.NEW_MEDIA"
@@ -48,7 +48,7 @@
         <activity android:name=".ui.VideoViewerActivity" />
 
         <receiver
-            android:name=".MyBroadCastReceiver"
+            android:name=".MyBroadcastReceiver"
             android:enabled="true"
             android:exported="true"
             android:permission="com.worksmobile.wm_project.NEW_MEDIA">
@@ -56,6 +56,7 @@
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
                 <action android:name="android.net.conn.CONNECTIVITY_ACTION" />
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE_V24" />
+                <action android:name="android.net.conn.CONNECTIVITY_CHANGE_V21" />
                 <action android:name="com.worksmobile.wm_project.NEW_MEDIA" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
 
@@ -71,9 +72,20 @@
 
         <service android:name=".service.BackgroundUploadService" />
 
+        <service
+            android:name=".service.ConnectivityJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <service
+            android:name=".service.NewMediaJobService"
+            android:exported="true"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyCezHWmwgkFZJoJjir5ZjnH5PpS0bgn4j0"/>
+            android:value="AIzaSyCezHWmwgkFZJoJjir5ZjnH5PpS0bgn4j0" />
     </application>
 
 </manifest>

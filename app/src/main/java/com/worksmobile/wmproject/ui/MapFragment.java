@@ -42,7 +42,7 @@ import com.google.maps.android.clustering.view.DefaultClusterRenderer;
 import com.google.maps.android.ui.IconGenerator;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.GlideApp;
-import com.worksmobile.wmproject.MultiDrawable;
+import com.worksmobile.wmproject.value_object.MultiDrawable;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.value_object.DriveFile;
@@ -221,10 +221,7 @@ public class MapFragment extends Fragment
                 queryHistory.add(queryLatDegree);
                 queryHistory.add(queryLngDegree);
                 System.out.println("BEFROE SIZE : " + driveFiles.length);
-
-
                 Collections.addAll(queryFiles, driveFiles);
-
                 System.out.println("ADDED SIZE  : " + queryFiles.size());
 
                 fetchPhoto();

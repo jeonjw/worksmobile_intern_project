@@ -9,7 +9,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
 
-import com.worksmobile.wmproject.MyBroadCastReceiver;
+import com.worksmobile.wmproject.MyBroadcastReceiver;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
 
@@ -45,8 +45,6 @@ public class MediaStoreObserver extends ContentObserver {
             countCursor.moveToFirst();
             storageCount = countCursor.getInt(0);
         }
-
-
     }
 
     @Override
@@ -85,6 +83,8 @@ public class MediaStoreObserver extends ContentObserver {
         countCursor.close();
     }
 
+
+
     private boolean isDownlodFileFromDrive(String location) {
         return location.contains("/storage/emulated/0/DCIM/WorksDrive/");
     }
@@ -95,12 +95,11 @@ public class MediaStoreObserver extends ContentObserver {
             public void run() {
                 handler.sendEmptyMessage(CALLBACK_PRESENT_INTEGER);
                 Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
-                intent.setClass(context, MyBroadCastReceiver.class);
+                intent.setClass(context, MyBroadcastReceiver.class);
                 context.sendBroadcast(intent);
             }
         };
     }
-
 
     private String getLastPictureLocation() {
         String[] projection = new String[]{
@@ -120,7 +119,6 @@ public class MediaStoreObserver extends ContentObserver {
         }
 
         cursor.close();
-
         return null;
     }
 }

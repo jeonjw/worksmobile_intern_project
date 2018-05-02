@@ -32,13 +32,14 @@ import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import com.worksmobile.wmproject.MyBroadCastReceiver;
+import com.worksmobile.wmproject.MyBroadcastReceiver;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
-import com.worksmobile.wmproject.service.MediaStoreJobService;
+import com.worksmobile.wmproject.service.ConnectivityJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
+import com.worksmobile.wmproject.service.NewMediaJobService;
 import com.worksmobile.wmproject.util.FileUtils;
 
 import java.text.DateFormat;
@@ -197,8 +198,10 @@ public class MainActivity extends AppCompatActivity
 
 
     private void setJobSchedule() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            MediaStoreJobService.scheduleJob(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//            MediaStoreJobService.scheduleJob(this);
+            NewMediaJobService.scheduleJob(this);
+            ConnectivityJobService.scheduleJob(this);
         } else {
             final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
             startService(intent);
@@ -262,7 +265,7 @@ public class MainActivity extends AppCompatActivity
 
     private void sendNewMediaBroadCast() {
         Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
-        intent.setClass(this, MyBroadCastReceiver.class);
+        intent.setClass(this, MyBroadcastReceiver.class);
         sendBroadcast(intent);
     }
 

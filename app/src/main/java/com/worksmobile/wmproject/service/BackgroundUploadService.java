@@ -68,7 +68,6 @@ public class BackgroundUploadService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        printDBWithRoom();
         if (isProgressNotificationRunning)
             handlerThread.sendQueryRequest();
 
@@ -129,7 +128,6 @@ public class BackgroundUploadService extends Service {
 
     @Override
     public void onDestroy() {
-        printDBWithRoom();
         System.out.println("Upload Service Destroy");
         handlerThread.quit();
         super.onDestroy();

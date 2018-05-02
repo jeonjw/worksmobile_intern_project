@@ -372,18 +372,14 @@ public class DriveHelper {
 
             if (latitudeRef != null || longitudeRef != null) {
                 if (latitudeRef.equals("N")) {
-                    System.out.println(convertToDegree(latitude));
                     latitudeDegree = convertToDegree(latitude);
                 } else {
-                    System.out.println(0 - convertToDegree(latitude));
                     latitudeDegree = 0 - convertToDegree(latitude);
                 }
 
                 if (longitudeRef.equals("E")) {
-                    System.out.println(convertToDegree(longitude));
                     longitudeDegree = convertToDegree(longitude);
                 } else {
-                    System.out.println(0 - convertToDegree(longitude));
                     longitudeDegree = 0 - convertToDegree(longitude);
                 }
 

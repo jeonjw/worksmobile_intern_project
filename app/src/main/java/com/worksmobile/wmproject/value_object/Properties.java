@@ -50,64 +50,6 @@ public class Properties implements Serializable {
     @SerializedName("longitude8")
     private double longitude8;
 
-    public double getLatitude1() {
-        return latitude1;
-    }
-
-    public double getLongitude1() {
-        return longitude1;
-    }
-
-
-    public double getLatitude2() {
-        return latitude2;
-    }
-
-    public double getLongitude2() {
-        return longitude2;
-    }
-
-
-    public double getLatitude3() {
-        return latitude3;
-    }
-
-    public double getLongitude3() {
-        return longitude3;
-    }
-
-    public double getLatitude4() {
-        return latitude4;
-    }
-
-    public double getLongitude4() {
-        return longitude4;
-    }
-
-
-    public double getLatitude5() {
-        return latitude5;
-    }
-
-    public double getLongitude5() {
-        return longitude5;
-    }
-
-    public double getLatitude6() {
-        return latitude6;
-    }
-
-    public double getLongitude6() {
-        return longitude6;
-    }
-
-    public double getLatitude7() {
-        return latitude7;
-    }
-
-    public double getLongitude7() {
-        return longitude7;
-    }
 
     public double getLatitude8() {
         return latitude7;

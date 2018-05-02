@@ -6,10 +6,6 @@ import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkRequest;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Handler;
@@ -17,7 +13,6 @@ import android.provider.MediaStore;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
 
-import com.worksmobile.wmproject.MyBroadCastReceiver;
 import com.worksmobile.wmproject.content_observer.MediaStoreObserver;
 
 import java.util.List;
@@ -26,18 +21,16 @@ import java.util.List;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MediaStoreJobService extends JobService {
 
+    private static final int MEDIASTORE_JOB_ID = 101;
     private static final Uri IMAGE_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
     private static final Uri VIDEO_CONTENT_URI = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
     private MediaStoreObserver imageObserver;
     private MediaStoreObserver videoObserver;
-    private ConnectivityManager.NetworkCallback networkCallback;
-    private ConnectivityManager connectivityManager;
-    private int firstAvailableCount;
 
-    static final JobInfo JOB_MEDIASTORE;
+    static final JobInfo MEDIASTORE_JOB;
 
     static {
-        JOB_MEDIASTORE = new JobInfo.Builder(101, new ComponentName("com.worksmobile.wm_project", MediaStoreJobService.class.getName()))
+        MEDIASTORE_JOB = new JobInfo.Builder(MEDIASTORE_JOB_ID, new ComponentName("com.worksmobile.wm_project", MediaStoreJobService.class.getName()))
                 .setBackoffCriteria(100, JobInfo.BACKOFF_POLICY_LINEAR)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
                 .setOverrideDeadline(3000)
@@ -52,7 +45,7 @@ public class MediaStoreJobService extends JobService {
 
     public static void scheduleJob(Context context) {
         JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        jobScheduler.schedule(JOB_MEDIASTORE);
+        jobScheduler.schedule(MEDIASTORE_JOB);
         Log.i("MEDIASTORE JOB SERVICE", "MEDIASTORE JOB SERVICE SCHEDULED");
 
     }
@@ -65,7 +58,7 @@ public class MediaStoreJobService extends JobService {
             return false;
         }
         for (int i = 0; i < jobs.size(); i++) {
-            if (jobs.get(i).getId() == 101) {
+            if (jobs.get(i).getId() == MEDIASTORE_JOB_ID) {
                 return true;
             }
         }
@@ -74,7 +67,7 @@ public class MediaStoreJobService extends JobService {
 
     public static void cancelJob(Context context) {
         JobScheduler js = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-        js.cancel(101);
+        js.cancel(MEDIASTORE_JOB_ID);
     }
 
     private void reScheduleJob(JobParameters jobParameters) {
@@ -88,36 +81,14 @@ public class MediaStoreJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters jobParameters) {
         registerObserver();
-        addConnectivityCallback();
         return true;
     }
 
-    private void addConnectivityCallback() {
-        System.out.println("ADD CALLBACK");
-        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        networkCallback = new ConnectivityManager.NetworkCallback() {
-            @Override
-            public void onAvailable(Network network) {
-                firstAvailableCount++;
-                System.out.println("Connection : onAvailable " + firstAvailableCount);
-                sendConnectivityBroadCast();
-            }
-
-            @Override
-            public void onLost(Network network) {
-                System.out.println("Connection : onLost");
-                sendConnectivityBroadCast();
-            }
-        };
-        connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), networkCallback);
-    }
 
     @Override
     public boolean onStopJob(JobParameters jobParameters) {
         System.out.println("JOB_SERVICE 종료");
         unregisterObserver();
-        if (networkCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
-            connectivityManager.unregisterNetworkCallback(networkCallback);
         reScheduleJob(jobParameters);
         return false;
     }
@@ -135,15 +106,6 @@ public class MediaStoreJobService extends JobService {
             getContentResolver().unregisterContentObserver(imageObserver);
             getContentResolver().unregisterContentObserver(videoObserver);
         }
-    }
-
-    private void sendConnectivityBroadCast() {
-        if (firstAvailableCount <= 2)
-            return;
-
-        Intent intent = new Intent("android.net.conn.CONNECTIVITY_CHANGE_V24");
-        intent.setClass(this, MyBroadCastReceiver.class);
-        sendBroadcast(intent);
     }
 
 

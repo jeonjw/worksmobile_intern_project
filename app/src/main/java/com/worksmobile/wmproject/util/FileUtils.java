@@ -22,12 +22,8 @@ public class FileUtils {
 
     static final String TAG = "FileUtils";
     private static final boolean DEBUG = false;
-
-    public static final String MIME_TYPE_AUDIO = "audio/*";
-    public static final String MIME_TYPE_TEXT = "text/*";
     public static final String MIME_TYPE_IMAGE = "image/*";
-    public static final String MIME_TYPE_VIDEO = "video/*";
-    public static final String MIME_TYPE_APP = "application/*";
+
 
 
     public static boolean isLocal(String url) {
@@ -44,33 +40,6 @@ public class FileUtils {
         }
         return null;
     }
-
-//    public static String getMimeType(File file) {
-//        String extension = getExtension(file.getName());
-//        if (extension.length() > 0)
-//            return MimeTypeMap.getSingleton().getMimeTypeFromExtension(extension.substring(1));
-//
-//        return "application/octet-stream";
-//    }
-//
-//    public static String getMimeType(Context context, Uri uri) {
-//        File file = new File(getPath(context, uri));
-//        return getMimeType(file);
-//    }
-
-//    public static String getExtension(String uri) {
-//        if (uri == null) {
-//            return null;
-//        }
-//
-//        int dot = uri.lastIndexOf(".");
-//        if (dot >= 0) {
-//            return uri.substring(dot);
-//        } else {
-//            // No extension.
-//            return "";
-//        }
-//    }
 
     public static String getExtension(String fileName) {
         String lowerName = fileName.toLowerCase();
@@ -118,8 +87,6 @@ public class FileUtils {
 
 
     public static String getPath(final Context context, final Uri uri) {
-
-        // DocumentProvider
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && DocumentsContract.isDocumentUri(context, uri)) {
             // ExternalStorageProvider
             if (isExternalStorageDocument(uri)) {
@@ -173,19 +140,15 @@ public class FileUtils {
         else if ("file".equalsIgnoreCase(uri.getScheme())) {
             return uri.getPath();
         }
-
         return null;
     }
 
-    public static String getDataColumn(Context context, Uri uri, String selection,
-                                       String[] selectionArgs) {
-
+    public static String getDataColumn(Context context, Uri uri, String selection, String[] selectionArgs) {
         Cursor cursor = null;
         final String column = "_data";
         final String[] projection = {
                 column
         };
-
         try {
             cursor = context.getContentResolver().query(uri, projection, selection, selectionArgs,
                     null);
@@ -225,10 +188,6 @@ public class FileUtils {
     public static Bitmap getThumbnail(Context context, File file) {
         return getThumbnail(context, getUri(file), getMimeType(file));
     }
-//
-//    public static Bitmap getThumbnail(Context context, Uri uri) {
-//        return getThumbnail(context, uri, getMimeType(context, uri));
-//    }
 
     public static Bitmap getThumbnail(Context context, Uri uri, String mimeType) {
         if (DEBUG)
