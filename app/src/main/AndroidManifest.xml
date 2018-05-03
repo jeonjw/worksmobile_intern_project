@@ -54,7 +54,6 @@
             android:permission="com.worksmobile.wm_project.NEW_MEDIA">
             <intent-filter android:priority="999">
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE" />
-                <action android:name="android.net.conn.CONNECTIVITY_ACTION" />
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE_V24" />
                 <action android:name="android.net.conn.CONNECTIVITY_CHANGE_V21" />
                 <action android:name="com.worksmobile.wm_project.NEW_MEDIA" />

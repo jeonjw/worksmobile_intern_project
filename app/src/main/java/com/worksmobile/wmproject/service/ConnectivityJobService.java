@@ -7,6 +7,9 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
@@ -18,43 +21,64 @@ import java.util.List;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class ConnectivityJobService extends JobService {
     private static final int CONNECTIVITY_JOB_ID = 102;
-    static final JobInfo CONNECTIVITY_JOB;
+    private static final JobInfo CONNECTIVITY_JOB;
+    private ConnectivityManager.NetworkCallback networkCallback;
+    private ConnectivityManager connectivityManager;
+    private int firstAvailableCount;
 
     static {
         CONNECTIVITY_JOB = new JobInfo.Builder(CONNECTIVITY_JOB_ID, new ComponentName("com.worksmobile.wm_project", ConnectivityJobService.class.getName()))
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
+                .setOverrideDeadline(3000)
                 .setPersisted(true)
                 .build();
     }
 
     @Override
     public boolean onStartJob(JobParameters jobParameters) {
-        sendConnectivityBroadcast();
+        Log.i("CONNECTIVITY JOB", "CONNECTIVITY JOB START");
+        addConnectivityCallback();
         return true;
     }
 
     @Override
     public boolean onStopJob(JobParameters jobParameters) {
-        Log.i("CONNECTIVITY JOB", "CONNECTIVITY JOB SERVICE FINISH");
+        Log.i("CONNECTIVITY JOB", "CONNECTIVITY JOB FINISH");
+        if (networkCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
+            connectivityManager.unregisterNetworkCallback(networkCallback);
         reScheduleJob(jobParameters);
-        return true;
+        return false;
     }
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i("CONNECTIVITY_JOB", "onStartCommand");
-        return START_NOT_STICKY;
+    private void addConnectivityCallback() {
+        System.out.println("ADD CALLBACK");
+        connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        networkCallback = new ConnectivityManager.NetworkCallback() {
+            @Override
+            public void onAvailable(Network network) {
+                firstAvailableCount++;
+                sendConnectivityBroadCast();
+            }
+
+            @Override
+            public void onLost(Network network) {
+                sendConnectivityBroadCast();
+            }
+        };
+        connectivityManager.registerNetworkCallback(new NetworkRequest.Builder().build(), networkCallback);
     }
 
-    private void sendConnectivityBroadcast() {
-        Intent intent = new Intent("android.net.conn.CONNECTIVITY_CHANGE_V21");
+    private void sendConnectivityBroadCast() {
+        if (firstAvailableCount <= 2)
+            return;
+
+        Intent intent = new Intent("android.net.conn.CONNECTIVITY_CHANGE_V24");
         intent.setClass(this, MyBroadcastReceiver.class);
         sendBroadcast(intent);
     }
 
     public static boolean isScheduled(Context context) {
         JobScheduler js = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
-
         List<JobInfo> jobs = js.getAllPendingJobs();
         if (jobs == null) {
             return false;
@@ -85,5 +109,4 @@ public class ConnectivityJobService extends JobService {
         jobScheduler.schedule(CONNECTIVITY_JOB);
         Log.i("CONNECTIVITY JOB", "CONNECTIVITY JOB SERVICE SCHEDULED");
     }
-
 }
