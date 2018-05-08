@@ -49,7 +49,8 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
 
         GlideApp.with(holder.imageView)
                 .load(thumbnailLink)
-                .centerCrop()
+                .override(file.getWidth() * 3 / 20, file.getHeight() * 3 / 20)
+                .centerInside()
                 .into(holder.imageView);
 
         if (isCheckBoxShowing) {
@@ -69,8 +70,8 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     }
 
     private String calculateProperThumbnailSize(int width, int height) {
-        String properWidth = String.valueOf(width * 2 / 10);
-        String properHeight = String.valueOf(height * 2 / 10);
+        String properWidth = String.valueOf(width * 3 / 20);
+        String properHeight = String.valueOf(height * 3 / 20);
         return "w" + properWidth + "-" + "h" + properHeight;
 
     }

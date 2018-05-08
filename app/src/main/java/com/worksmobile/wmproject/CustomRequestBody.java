@@ -50,7 +50,6 @@ public class CustomRequestBody extends RequestBody {
     public void writeTo(@NonNull BufferedSink sink) throws IOException {
         long totalBytes = file.length();
         boolean uploadFail = false;
-
         try (FileInputStream in = new FileInputStream(file)) {
             byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
             long uploadedBytes = 0;

@@ -24,10 +24,7 @@ import com.worksmobile.wmproject.value_object.UploadResult;
 
 import java.io.File;
 import java.io.IOException;
-import java.math.RoundingMode;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import okhttp3.MediaType;
@@ -350,6 +347,7 @@ public class DriveHelper {
 
             jsonObject.add("properties", properties);
         }
+
         RequestBody propertiyBody = RequestBody.create(MediaType.parse("application/json; charset=utf-8"), jsonObject.toString());
         MultipartBody.Part dataPart = prepareFilePart(srcFile, fileStatus, handler);
 
@@ -416,16 +414,13 @@ public class DriveHelper {
     }
 
     @NonNull
-    private MultipartBody.Part prepareFilePart(File file, FileStatus fileStatus, Handler
-            handler) {
+    private MultipartBody.Part prepareFilePart(File file, FileStatus fileStatus, Handler handler) {
         String mimeType = FileUtils.getMimeType(file);
-
         RequestBody requestFile = new CustomRequestBody(context, file, mimeType, new CustomRequestBody.ProgressListener() {
             @Override
             public void onUploadProgress(final int progressInPercent, final long totalBytes) {
                 if (progressInPercent == 100) {
                     Message message = handler.obtainMessage(UPLOAD_SUCCESS, fileStatus);
-
                     handler.sendMessageAtFrontOfQueue(message);
                 }
             }
@@ -457,7 +452,6 @@ public class DriveHelper {
         }
     }
 
-
     public void enqueueListCreationCall(boolean trash, String mimeType, final ListCallback callback) {
         String query = String.format("'%s' in parents", "root") + " and trashed = " + String.valueOf(trash);
         if (mimeType != null) {
@@ -465,7 +459,7 @@ public class DriveHelper {
         }
 
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
-                "name", 1000, null, query, QUERY_FIELDS);
+                "createdTime desc", 1000, null, query, "nextPageToken, " + QUERY_FIELDS);
         call.enqueue(new Callback<DriveFiles>() {
             @Override
             public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
@@ -501,7 +495,7 @@ public class DriveHelper {
 
 
         Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
-                "name", 1000, null, query, QUERY_FIELDS);
+                null, 1000, null, query, QUERY_FIELDS);
         call.enqueue(new Callback<DriveFiles>() {
             @Override
             public void onResponse(@NonNull Call<DriveFiles> call, @NonNull Response<DriveFiles> response) {
@@ -522,69 +516,6 @@ public class DriveHelper {
             @Override
             public void onFailure(@NonNull Call<DriveFiles> call, @NonNull Throwable t) {
                 String message = DriveUtils.printFailure("enqueueListCreationCall", t);
-                if (callback != null) {
-                    callback.onFailure(message);
-                }
-            }
-        });
-    }
-
-
-    public void getFileListFromName(List<String> idList, final ListCallback callback) {
-        StringBuilder query = new StringBuilder();
-        query.append(String.format("name = '%s'", idList.get(0)));
-
-        for (int i = 1; i < idList.size(); i++) {
-            query.append(String.format(" or name = '%s'", idList.get(i)));
-        }
-
-        Call<DriveFiles> call = driveApi.getFiles(getAuthToken(),
-                "name", 1000, null, query.toString(), QUERY_FIELDS);
-
-        call.enqueue(new Callback<DriveFiles>() {
-            @Override
-            public void onResponse(Call<DriveFiles> call, Response<DriveFiles> response) {
-                String message = DriveUtils.printResponse("getFielFromName", response);
-                if (message == SUCCESS) {
-                    if (callback != null) {
-                        callback.onSuccess(response.body().getFiles());
-                    }
-                } else {
-                    if (callback != null) {
-                        callback.onFailure(message);
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(Call<DriveFiles> call, Throwable t) {
-
-            }
-        });
-
-    }
-
-    public void enqueueFileInfoCall(String fileId, final StateCallback callback) {
-        Call<DriveFile> call = driveApi.getFile(getAuthToken(), fileId, "thumbnailLink");
-        call.enqueue(new Callback<DriveFile>() {
-            @Override
-            public void onResponse(@NonNull Call<DriveFile> call, @NonNull Response<DriveFile> response) {
-                String message = DriveUtils.printResponse("enqueueFileInfoCall", response);
-                if (message == SUCCESS) {
-                    if (callback != null) {
-                        DriveFile file = response.body();
-                        callback.onSuccess(file.getThumbnailLink());
-                    }
-                } else {
-                    if (callback != null) {
-                        callback.onFailure(message);
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(@NonNull Call<DriveFile> call, @NonNull Throwable t) {
-                String message = DriveUtils.printFailure("enqueueFileInfoCall", t);
                 if (callback != null) {
                     callback.onFailure(message);
                 }

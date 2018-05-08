@@ -13,8 +13,6 @@ import java.util.ArrayList;
 
 public class ImageViewerActivity extends AppCompatActivity {
 
-    private ViewPager viewPager;
-
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -23,9 +21,8 @@ public class ImageViewerActivity extends AppCompatActivity {
         ArrayList<DriveFile> fileList = (ArrayList<DriveFile>) getIntent().getSerializableExtra("FILE_LIST");
         int viewerPosition = getIntent().getIntExtra("VIEWER_POSITION", 0);
 
-
         ViewerPagerAdapter viewerPageAdapter = new ViewerPagerAdapter(this, fileList);
-        viewPager = findViewById(R.id.pager);
+        ViewPager viewPager = findViewById(R.id.pager);
         viewPager.setAdapter(viewerPageAdapter);
         viewPager.setCurrentItem(viewerPosition);
 

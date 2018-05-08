@@ -7,20 +7,14 @@ import java.util.Date;
 
 public class DriveFile implements Serializable {
 
-    @SerializedName("kind")
-    private String kind;
     @SerializedName("id")
     private String id;
     @SerializedName("name")
     private String name;
     @SerializedName("mimeType")
     private String mimeType;
-    @SerializedName("description")
-    private String description;
     @SerializedName("properties")
     private Properties properties;
-    @SerializedName("starred")
-    private boolean starred;
     @SerializedName("trashed")
     private boolean trashed;
     @SerializedName("explicitlyTrashed")
@@ -29,16 +23,10 @@ public class DriveFile implements Serializable {
     private boolean hasThumbnail;
     @SerializedName("thumbnailLink")
     private String thumbnailLink;
-    @SerializedName("parents")
-    private String[] parents;
     @SerializedName("createdTime")
     private Date createdTime;
     @SerializedName("modifiedTime")
     private Date modifiedTime;
-    @SerializedName("shared")
-    private boolean shared;
-    @SerializedName("fileExtension")
-    private String fileExtension;
     @SerializedName("size")
     private long size;
     @SerializedName("imageMediaMetadata")
@@ -54,9 +42,6 @@ public class DriveFile implements Serializable {
         return videoMediaMetadata;
     }
 
-    public void setVideoMediaMetadata(MediaMetadata videoMediaMetadata) {
-        this.videoMediaMetadata = videoMediaMetadata;
-    }
 
     public int getWidth() {
         if (imageMediaMetadata == null)
@@ -79,24 +64,8 @@ public class DriveFile implements Serializable {
         return imageMediaMetadata.getTime();
     }
 
-    public void setImageMediaMetadata(MediaMetadata imageMediaMetadata) {
-        this.imageMediaMetadata = imageMediaMetadata;
-    }
-
     public Properties getProperties() {
         return properties;
-    }
-
-    public void setProperties(Properties properties) {
-        this.properties = properties;
-    }
-
-    public String getKind() {
-        return kind;
-    }
-
-    public void setKind(String kind) {
-        this.kind = kind;
     }
 
     public String getId() {
@@ -123,22 +92,6 @@ public class DriveFile implements Serializable {
         this.mimeType = mimeType;
     }
 
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public boolean isStarred() {
-        return starred;
-    }
-
-    public void setStarred(boolean starred) {
-        this.starred = starred;
-    }
-
     public boolean isTrashed() {
         return trashed;
     }
@@ -155,14 +108,6 @@ public class DriveFile implements Serializable {
         this.explicitlyTrashed = explicitlyTrashed;
     }
 
-    public String[] getParents() {
-        return parents;
-    }
-
-    public void setParents(String[] parents) {
-        this.parents = parents;
-    }
-
     public Date getCreatedTime() {
         return createdTime;
     }
@@ -177,22 +122,6 @@ public class DriveFile implements Serializable {
 
     public void setModifiedTime(Date modifiedTime) {
         this.modifiedTime = modifiedTime;
-    }
-
-    public boolean isShared() {
-        return shared;
-    }
-
-    public void setShared(boolean shared) {
-        this.shared = shared;
-    }
-
-    public String getFileExtension() {
-        return fileExtension;
-    }
-
-    public void setFileExtension(String fileExtension) {
-        this.fileExtension = fileExtension;
     }
 
     public long getSize() {

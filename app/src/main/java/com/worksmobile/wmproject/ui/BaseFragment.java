@@ -1,6 +1,7 @@
 package com.worksmobile.wmproject.ui;
 
 
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -36,7 +37,6 @@ import java.util.Date;
 import java.util.Locale;
 
 public abstract class BaseFragment extends Fragment implements OnSelectModeClickListener {
-    private static final int DELETE = 100;
 
     protected RecyclerView recyclerView;
     protected View.OnClickListener itemClickListener;
@@ -48,7 +48,8 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     private View.OnClickListener selectModeClickListener;
     private OnModeChangeListener modeChangeListener;
     private int currentSortingCriteria;
-    private ProgressBar progressBar;
+    protected ProgressBar progressBar;
+    private int deleteCount = 0;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_photo, container, false);
@@ -62,7 +63,6 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         progressBar = view.findViewById(R.id.view_progress_bar);
 
         initClickListener();
-
         adapter = new ThumbnailRecyclerViewAdapter(fileList, itemClickListener, modeChangeListener);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 3));
         recyclerView.addItemDecoration(new ThumbnailItemDecoration(3, 3));
@@ -230,7 +230,6 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                     date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA).parse(takenTime);
                 }
 
-
             }
         } catch (ParseException e) {
             e.printStackTrace();
@@ -258,25 +257,33 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     }
 
     public void requestDelete() {
+        deleteCount = 0;
+        int totalDeleteCount = adapter.getCheckedFileList().size();
+
+        progressBar.setVisibility(View.VISIBLE);
         for (DriveFile file : adapter.getCheckedFileList()) {
             driveHelper.enqueueDeleteCall(file, new StateCallback() {
                 @Override
                 public void onSuccess(String msg) {
                     if (msg == null) {
+                        deleteCount++;
                         int position = fileList.indexOf(file);
                         fileList.remove(position);
-                        adapter.notifyItemRemoved(position);
-                    }
 
+                        if (deleteCount == totalDeleteCount) {
+                            progressBar.setVisibility(View.GONE);
+                            adapter.notifyDataSetChanged();
+                            adapter.clearCheckedItem();
+                        }
+                    }
                 }
 
                 @Override
                 public void onFailure(String msg) {
-
                 }
             });
         }
-        adapter.clearCheckedItem();
+
     }
 
     private void createAlertDialog(int count) {

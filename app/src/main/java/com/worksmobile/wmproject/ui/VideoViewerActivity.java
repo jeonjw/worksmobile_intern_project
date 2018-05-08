@@ -22,7 +22,6 @@ public class VideoViewerActivity extends AppCompatActivity {
         String fileName = getIntent().getStringExtra("FILE_NAME");
 
         String path = getDownlodedFilePath(fileName);
-        System.out.println("PATH : " + path);
         File file = null;
         if (path != null)
             file = new File(path);

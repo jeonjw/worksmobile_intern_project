@@ -2,6 +2,8 @@ package com.worksmobile.wmproject.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -80,8 +82,15 @@ public class MapFragment extends Fragment
     private ClusterManager<MarkerItem> clusterManager;
     private String queryLatDegree;
     private String queryLngDegree;
-
     private DriveHelper driveHelper;
+    private Context context;
+
+    @Override
+    public void onAttach(Context context) {
+        this.context = context;
+        super.onAttach(context);
+    }
+
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
         menu.findItem(R.id.toolbar_sorting_button).setVisible(false);
@@ -146,20 +155,20 @@ public class MapFragment extends Fragment
         clusterManager.onCameraIdle();
         LatLng latLng = googleMap.getCameraPosition().target;
         LatLngBounds latLngBounds = googleMap.getProjection().getVisibleRegion().latLngBounds;
-        System.out.println("CAMERA CENTER POSTITION : " + latLng.latitude + ", " + latLng.longitude);
+        Log.d(TAG, "CAMERA CENTER POSTITION : " + latLng.latitude + ", " + latLng.longitude);
         DecimalFormat decimalFormat = new DecimalFormat("000.00000");
 
-        System.out.println("CAMERA MAX BOUNDS N/E Lati: " + decimalFormat.format(latLngBounds.northeast.latitude));
-        System.out.println("CAMERA MAX BOUNDS N/E Longi: " + decimalFormat.format(latLngBounds.northeast.longitude));
-        System.out.println("CAMERA MAX BOUNDS S/W Lati: " + decimalFormat.format(latLngBounds.southwest.latitude));
-        System.out.println("CAMERA MAX BOUNDS S/W Longi: " + decimalFormat.format(latLngBounds.southwest.longitude));
-        System.out.println("CAMERA ZOOM LEVEL : " + googleMap.getCameraPosition().zoom);
+        Log.d(TAG, "CAMERA MAX BOUNDS N/E Lati: " + decimalFormat.format(latLngBounds.northeast.latitude));
+        Log.d(TAG, "CAMERA MAX BOUNDS N/E Longi: " + decimalFormat.format(latLngBounds.northeast.longitude));
+        Log.d(TAG, "CAMERA MAX BOUNDS S/W Lati: " + decimalFormat.format(latLngBounds.southwest.latitude));
+        Log.d(TAG, "CAMERA MAX BOUNDS S/W Longi: " + decimalFormat.format(latLngBounds.southwest.longitude));
+        Log.d(TAG, "CAMERA ZOOM LEVEL : " + googleMap.getCameraPosition().zoom);
 
         String latQuery = matchGeoRange("latitude", decimalFormat.format(latLngBounds.northeast.latitude), decimalFormat.format(latLngBounds.southwest.latitude));
         String lngQuery = matchGeoRange("longitude", decimalFormat.format(latLngBounds.northeast.longitude), decimalFormat.format(latLngBounds.southwest.longitude));
 
-        System.out.println("lat Query : " + latQuery);
-        System.out.println("lng Query : " + lngQuery);
+        Log.d(TAG, "lat Query : " + latQuery);
+        Log.d(TAG, "lng Query : " + lngQuery);
 
         requestPhotoIdAndProperties(latQuery, lngQuery);
     }
@@ -209,7 +218,7 @@ public class MapFragment extends Fragment
 
     private void requestPhotoIdAndProperties(String latQuery, String lngQuery) {
         if (queryHistory.contains(queryLatDegree) && queryHistory.contains(queryLngDegree)) {
-            System.out.println("QUERY 진행 패스");
+            Log.d(TAG, "QUERY 진행 패스");
             fetchPhoto();
             return;
         }
@@ -220,9 +229,9 @@ public class MapFragment extends Fragment
 
                 queryHistory.add(queryLatDegree);
                 queryHistory.add(queryLngDegree);
-                System.out.println("BEFROE SIZE : " + driveFiles.length);
+                Log.d(TAG, "BEFROE SIZE : " + driveFiles.length);
                 Collections.addAll(queryFiles, driveFiles);
-                System.out.println("ADDED SIZE  : " + queryFiles.size());
+                Log.d(TAG, "ADDED SIZE  : " + queryFiles.size());
 
                 fetchPhoto();
             }
@@ -243,7 +252,7 @@ public class MapFragment extends Fragment
         for (DriveFile file : queryFiles) {
             LatLng latLng = new LatLng(file.getProperties().getLatitude8(), file.getProperties().getLongitude8());
             if (SphericalUtil.computeDistanceBetween(googleMap.getCameraPosition().target, latLng) <= limit && !photoHistory.contains(file.getName())) {
-                System.out.println("추가됨 : " + file.getName());
+                Log.d(TAG, "추가됨 : " + file.getName());
                 photoHistory.add(file.getName());
                 addMarker(new LatLng(file.getProperties().getLatitude8(), file.getProperties().getLongitude8()), file.getThumbnailLink());
             }
@@ -251,6 +260,8 @@ public class MapFragment extends Fragment
     }
 
     private void addMarker(LatLng latLng, String imageUrl) {
+        if (getActivity() == null)
+            return;
         GlideApp.with(getActivity())
                 .load(imageUrl)
                 .override(200, 200)
@@ -265,7 +276,7 @@ public class MapFragment extends Fragment
     }
 
     private String getAddressNameFromLatLng(LatLng latLng) {
-        Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
+        Geocoder geocoder = new Geocoder(context, Locale.getDefault());
         List<Address> addresses = null;
         try {
             addresses = geocoder.getFromLocation(latLng.latitude, latLng.longitude, 1);

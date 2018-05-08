@@ -8,6 +8,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
+import android.util.Log;
 
 import com.worksmobile.wmproject.MyBroadcastReceiver;
 import com.worksmobile.wmproject.room.AppDatabase;
@@ -20,13 +21,14 @@ import java.util.Locale;
 
 public class MediaStoreObserver extends ContentObserver {
 
-    private int storageCount;
+    private static final String TAG = "MEDIA_STORE_OBSERVER";
+    private static final int CALLBACK_PRESENT_INTEGER = 0;
+
     private Uri EXTERNAL_CONTENT_URI;
     private Context context;
-    private Cursor countCursor;
     private Handler handler;
-    private static final int CALLBACK_PRESENT_INTEGER = 0;
     private Runnable broakdCastTask;
+    int previousCount;
 
     public MediaStoreObserver(Handler handler, Context context, Uri contentUri) {
         super(handler);
@@ -34,43 +36,25 @@ public class MediaStoreObserver extends ContentObserver {
         this.handler = handler;
 
         EXTERNAL_CONTENT_URI = contentUri;
-
-        countCursor = context.getContentResolver().query(EXTERNAL_CONTENT_URI,
-                new String[]{"count(*) AS count"},
-                null,
-                null,
-                null);
-
-        if (countCursor != null) {
-            countCursor.moveToFirst();
-            storageCount = countCursor.getInt(0);
-        }
+        previousCount = getStorageCount();
     }
+
 
     @Override
     public void onChange(boolean selfChange) {
-        int previousCount = storageCount;
-        countCursor = context.getContentResolver().query(EXTERNAL_CONTENT_URI,
-                new String[]{"count(*) AS count"},
-                null,
-                null,
-                null);
+        int currentCount = getStorageCount();
+        Log.d(TAG, "onChange Previous count : " + previousCount + " Current count : " + currentCount);
 
-        if (countCursor != null) {
-            countCursor.moveToFirst();
-            storageCount = countCursor.getInt(0);
-        }
-
-        if (storageCount > previousCount) {
+        if (currentCount > previousCount) {
             if (isDownlodFileFromDrive(getLastPictureLocation())) {
                 return;
             }
-            System.out.println("Media 추가");
+
+            Log.d(TAG, "Media 추가");
             DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
             Date nowDate = new Date();
             String tempDate = sdFormat.format(nowDate);
             AppDatabase.getDatabase(context).fileDAO().insertFileStatus(new FileStatus(getLastPictureLocation(), tempDate, "UPLOAD"));
-
 
             if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && broakdCastTask != null) {
                 handler.removeCallbacks(broakdCastTask);
@@ -78,12 +62,27 @@ public class MediaStoreObserver extends ContentObserver {
 
             broakdCastTask = getBroadCastTask();
             handler.postDelayed(broakdCastTask, 3000);
-
         }
-        countCursor.close();
+        previousCount = currentCount;
+
     }
 
+    private int getStorageCount() {
+        int count = -1;
+        Cursor countCursor = context.getContentResolver().query(EXTERNAL_CONTENT_URI,
+                new String[]{"count(*) AS count"},
+                null,
+                null,
+                null);
 
+        if (countCursor != null) {
+            countCursor.moveToFirst();
+            count = countCursor.getInt(0);
+        }
+        countCursor.close();
+
+        return count;
+    }
 
     private boolean isDownlodFileFromDrive(String location) {
         return location.contains("/storage/emulated/0/DCIM/WorksDrive/");
@@ -112,7 +111,6 @@ public class MediaStoreObserver extends ContentObserver {
         final Cursor cursor = context.getContentResolver()
                 .query(EXTERNAL_CONTENT_URI, projection, null,
                         null, "date_added" + " DESC");
-
 
         if (cursor != null && cursor.moveToFirst()) {
             return cursor.getString(1);

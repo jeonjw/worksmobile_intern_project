@@ -11,6 +11,7 @@ import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 
 import com.worksmobile.wmproject.BackgroundServiceHandler;
 import com.worksmobile.wmproject.DriveHelper;
@@ -30,6 +31,8 @@ import retrofit2.Response;
 
 
 public class BackgroundUploadService extends Service {
+
+    private static final String TAG = "UPLOAD_SERVICE";
     private static final int PROGRESS_NOTIFICATION_ID = 100;
     private static final int FINISH_NOTIFICATION_ID = 200;
     public static final int READY = 300;
@@ -39,6 +42,7 @@ public class BackgroundUploadService extends Service {
     public static final int UPLOAD_REQUEST_FINISH = 710;
     public static final int QUERY = 706;
     private static final int QUERY_FINISH = 707;
+    private static final int FAKE_NOTIFICATION_ID = 999;
 
     private DriveHelper driveHelper;
     private List<FileStatus> uploadFileList;
@@ -53,23 +57,22 @@ public class BackgroundUploadService extends Service {
     private Handler mainThreadHandler;
     private AppDatabase appDatabase;
 
-
     @Override
     public void onCreate() {
         super.onCreate();
-        System.out.println("BackGround SERVICE CREATE");
+        Log.d(TAG, "Background Service Create");
         appDatabase = AppDatabase.getDatabase(getBaseContext());
         mainThreadHandler = new BackgroundServiceHandler(this);
         driveHelper = new DriveHelper(this);
         handlerThread = new UploadHandlerThread("UploadHandlerThread");
         handlerThread.start();
-
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (isProgressNotificationRunning)
+        if (isProgressNotificationRunning) {
             handlerThread.sendQueryRequest();
+        }
 
         return START_NOT_STICKY;
     }
@@ -93,7 +96,7 @@ public class BackgroundUploadService extends Service {
                     createNotification(uploadFileList.size());
                     createUploadRequest(uploadFileList);
                 } else if (uploadFileList != null && uploadFileList.size() == 0 && totalUploadCount == 0) {
-                    startForeground(999, new Notification()); //fakeStartForeground
+                    startForeground(FAKE_NOTIFICATION_ID, new Notification()); //fakeStartForeground
                     stopSelf();
                 }
                 break;
@@ -116,19 +119,18 @@ public class BackgroundUploadService extends Service {
             uploadFailCount++;
         }
 
-
-        System.out.println("COUNT : " + currentProgress + "TOTAL : " + totalUploadCount);
+        Log.d(TAG, "COUNT : " + currentProgress + "TOTAL : " + totalUploadCount);
     }
 
     private void printDBWithRoom() {
         for (FileStatus fileStatus : appDatabase.fileDAO().getAll()) {
-            System.out.println("CURSOR " + fileStatus.getId() + " LocationInfo : " + fileStatus.getLocation() + " STATUS : " + fileStatus.getStatus() + " DATE : " + fileStatus.getDate());
+            Log.d(TAG, "CURSOR " + fileStatus.getId() + " LocationInfo : " + fileStatus.getLocation() + " STATUS : " + fileStatus.getStatus() + " DATE : " + fileStatus.getDate());
         }
     }
 
     @Override
     public void onDestroy() {
-        System.out.println("Upload Service Destroy");
+        Log.d(TAG, "Upload Service Destroy");
         handlerThread.quit();
         super.onDestroy();
     }
@@ -149,33 +151,18 @@ public class BackgroundUploadService extends Service {
         Intent intent = new Intent(this, MainActivity.class);
         pendingIntent = PendingIntent.getActivity(this, 101, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            notificationBuilder =
-                    new NotificationCompat.Builder(this, "WM_PROJECT")
-                            .setVibrate(new long[]{0})
-                            .setContentTitle(getString(R.string.notification_title))
-                            .setContentText(tryMessage)
-                            .setProgress(progressMax, 0, false)
-                            .setContentIntent(pendingIntent)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground);
+        notificationBuilder = new NotificationCompat.Builder(this, "WM_PROJECT")
+                        .setSmallIcon(R.drawable.ic_cloud)
+                        .setColor(getResources().getColor(R.color.colorPrimary))
+                        .setVibrate(new long[]{0})
+                        .setContentTitle(getString(R.string.notification_title))
+                        .setContentText(tryMessage)
+                        .setAutoCancel(true)
+                        .setProgress(progressMax, 0, false)
+                        .setContentIntent(pendingIntent);
 
-            startForeground(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
-            isProgressNotificationRunning = true;
-        } else {
-            notificationBuilder =
-                    new NotificationCompat.Builder(this)
-                            .setSmallIcon(R.drawable.android)
-                            .setContentTitle(getString(R.string.notification_title))
-                            .setContentText(tryMessage)
-                            .setDefaults(Notification.DEFAULT_ALL)
-                            .setProgress(progressMax, 0, false)
-                            .setContentIntent(pendingIntent)
-                            .setAutoCancel(true)
-                            .setPriority(Notification.PRIORITY_LOW);
-
-            notificationManager.notify(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
-            isProgressNotificationRunning = true;
-        }
+        startForeground(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
+        isProgressNotificationRunning = true;
     }
 
     private void sendUploadFinishNotification() {
@@ -186,24 +173,16 @@ public class BackgroundUploadService extends Service {
             notificationMessage = String.format(Locale.KOREA, getString(R.string.notification_upload_fail_message), uploadFailCount);
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            stopForeground(true);
-            notificationBuilder = new NotificationCompat.Builder(BackgroundUploadService.this, "WM_PROJECT")
-                    .setContentTitle(getString(R.string.notification_title))
-                    .setContentText(notificationMessage)
-                    .setContentIntent(pendingIntent)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground);
-        } else {
-            notificationBuilder =
-                    new NotificationCompat.Builder(this)
-                            .setSmallIcon(R.drawable.android)
-                            .setContentTitle(getString(R.string.notification_title))
-                            .setContentText(notificationMessage)
-                            .setPriority(Notification.PRIORITY_LOW)
-                            .setDefaults(Notification.DEFAULT_ALL)
-                            .setContentIntent(pendingIntent);
+        stopForeground(true);
 
-        }
+        notificationBuilder = new NotificationCompat.Builder(BackgroundUploadService.this, "WM_PROJECT")
+                .setSmallIcon(R.drawable.ic_cloud)
+                .setColor(getResources().getColor(R.color.colorPrimary))
+                .setContentTitle(getString(R.string.notification_title))
+                .setContentText(notificationMessage)
+                .setContentIntent(pendingIntent)
+                .setAutoCancel(true);
+
         notificationManager.cancel(PROGRESS_NOTIFICATION_ID);
         notificationManager.notify(FINISH_NOTIFICATION_ID, notificationBuilder.build());
     }

@@ -6,19 +6,20 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
-import android.widget.Toast;
+import android.util.Log;
 
 import com.worksmobile.wmproject.service.BackgroundUploadService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 
 public class MyBroadcastReceiver extends BroadcastReceiver {
+
+    private static final String TAG = "BROADCAST_RECEIVER";
     private ConnectivityManager connectivityManager;
 
     @Override
     public void onReceive(Context context, Intent intent) {
         String actionName = intent.getAction();
-        System.out.println("ACTION : " + actionName);
-        Toast.makeText(context, "받은 액션 : " + actionName, Toast.LENGTH_SHORT).show();
+        Log.d(TAG, "ACTION : " + actionName);
 
         switch (actionName) {
             case "com.worksmobile.wm_project.NEW_MEDIA":
@@ -44,11 +45,8 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
             connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
 
-        if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)
-                return true;
-        }
-        return false;
+        return networkInfo != null && networkInfo.isConnectedOrConnecting()
+                && (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX);
     }
 
     private void startUploadService(Context context) {

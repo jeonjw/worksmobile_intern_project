@@ -37,10 +37,8 @@ import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
-import com.worksmobile.wmproject.service.ConnectivityJobService;
 import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
-import com.worksmobile.wmproject.service.NewMediaJobService;
 import com.worksmobile.wmproject.util.FileUtils;
 
 import java.text.DateFormat;
@@ -51,6 +49,7 @@ import java.util.Locale;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
+    private static final String TAG = "MAIN_ACTIVITY";
     private static final int EXTERNAL_STORAGE_PERMISSION_CODE = 777;
     private static final int FILE_SELECT_CODE = 888;
 
@@ -63,7 +62,6 @@ public class MainActivity extends AppCompatActivity
     private boolean selectMode;
     private MenuItem selectModeMenuItem;
     private MenuItem selectAllMenuItem;
-    private MenuItem toolbarSortingMenuItem;
     private FloatingActionButton floatingActionButton;
     private String currentToolbarTitle;
 
@@ -150,6 +148,7 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = findViewById(R.id.navigation_view);
         navigationView.setNavigationItemSelectedListener(this);
 
+        currentToolbarTitle = getString(R.string.all_photo);
         Fragment fragment = new PhotoFragment();
         getSupportFragmentManager().beginTransaction().add(R.id.content_fragment, fragment).commit();
         onSelectModeClickListener = (PhotoFragment) fragment;
@@ -201,11 +200,9 @@ public class MainActivity extends AppCompatActivity
     private void setJobSchedule() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             MediaStoreJobService.scheduleJob(this);
-//            NewMediaJobService.scheduleJob(this);
-//            ConnectivityJobService.scheduleJob(this);
         } else {
-            final Intent intent = new Intent(MainActivity.this, MediaStoreService.class);
-            startService(intent);
+            Intent mediaStoreService = new Intent(MainActivity.this, MediaStoreService.class);
+            startService(mediaStoreService);
         }
     }
 
@@ -281,7 +278,7 @@ public class MainActivity extends AppCompatActivity
                 toolbarTextView.setText(currentToolbarTitle);
                 break;
             case R.id.nav_photo_map:
-                currentToolbarTitle = "사진 지도";
+                currentToolbarTitle = getString(R.string.photo_map);
                 toolbarTextView.setText(currentToolbarTitle);
                 drawerLayout.closeDrawer(GravityCompat.START);
                 getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, new MapFragment()).commit();
@@ -319,10 +316,10 @@ public class MainActivity extends AppCompatActivity
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar_menu, menu);
         selectModeMenuItem = menu.findItem(R.id.toolbar_check_button);
-        toolbarSortingMenuItem = menu.findItem(R.id.toolbar_sorting_button);
         selectAllMenuItem = menu.findItem(R.id.toolbar_select_all);
         return true;
     }
+
 
     public void changeToolbarSelectMode() {
         if (selectMode)

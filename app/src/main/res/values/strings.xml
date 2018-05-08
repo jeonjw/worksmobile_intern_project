@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">WM_Project</string>
+    <string name="app_name">네이버 클라우드</string>
     <string name="notification_title">네이버 클라우드</string>
     <string name="notification_upload_success_message">%d개의 파일이 안전하게 보관되었습니다.</string>
     <string name="notification_upload_fail_message">%d개의 파일을 업로드 실패했습니다.</string>
@@ -16,4 +16,5 @@
     <string name="all_video">모든 영상</string>
     <string name="trash_can">휴지통</string>
     <string name="etc_file">기타 파일</string>
+    <string name="photo_map">사진 지도</string>
 </resources>

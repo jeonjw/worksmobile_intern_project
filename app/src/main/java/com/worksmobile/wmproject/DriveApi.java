@@ -54,15 +54,6 @@ public interface DriveApi {
     );
 
     /**
-     * https://accounts.google.com/o/oauth2/revoke?token={token}
-     */
-    @GET("/o/oauth2/revoke")
-    Call<Void> revokeToken(
-            @Query("token") String token
-    );
-
-
-    /**
      * https://developers.google.com/drive/v3/reference/files/list
      */
     @GET("/drive/v3/files")
@@ -123,4 +114,5 @@ public interface DriveApi {
             @Header("Authorization") String authToken,
             @Path(value = "fileId") String fileId
     );
+
 }

@@ -26,6 +26,7 @@ import java.util.List;
 @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
 public class MediaStoreJobService extends JobService {
 
+    private static final String TAG = "MEDIASTORE_JOB_SERVICE";
     private static final int MEDIASTORE_JOB_ID = 101;
     private static final Uri IMAGE_CONTENT_URI = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
     private static final Uri VIDEO_CONTENT_URI = MediaStore.Video.Media.EXTERNAL_CONTENT_URI;
@@ -47,14 +48,13 @@ public class MediaStoreJobService extends JobService {
     }
 
     public MediaStoreJobService() {
-        super();
-        System.out.println("MediaJobService Start");
+        Log.d(TAG, "Media Store Job Created");
     }
 
     public static void scheduleJob(Context context) {
         JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         jobScheduler.schedule(MEDIASTORE_JOB);
-        Log.i("MEDIASTORE JOB SERVICE", "MEDIASTORE JOB SERVICE SCHEDULED");
+        Log.d(TAG, "Scheduled");
 
     }
 
@@ -74,7 +74,7 @@ public class MediaStoreJobService extends JobService {
     }
 
     private void addConnectivityCallback() {
-        System.out.println("ADD CALLBACK");
+        Log.d(TAG, "Add Network Callback");
         connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         networkCallback = new ConnectivityManager.NetworkCallback() {
             @Override
@@ -123,7 +123,7 @@ public class MediaStoreJobService extends JobService {
 
     @Override
     public boolean onStopJob(JobParameters jobParameters) {
-        System.out.println("JOB_SERVICE 종료");
+        Log.d(TAG, "onStop");
         unregisterObserver();
         if (networkCallback != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP)
             connectivityManager.unregisterNetworkCallback(networkCallback);

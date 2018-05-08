@@ -57,7 +57,6 @@ public class LoginActivity extends AppCompatActivity {
             // use the parameter your API exposes for the code (mostly it's "code")
             String code = uri.getQueryParameter("code");
             if (code != null) {
-                System.out.println("TEST: " + code);
                 requestToken(code);
             } else if (uri.getQueryParameter("error") != null) {
                 // show an error message here
@@ -125,7 +124,6 @@ public class LoginActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
-        System.out.println("Onstart");
         super.onStart();
         checkIntent(getIntent());
     }
