@@ -33,7 +33,6 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
 
             case "android.net.conn.CONNECTIVITY_CHANGE":
             case "android.net.conn.CONNECTIVITY_CHANGE_V24":
-            case "android.net.conn.CONNECTIVITY_CHANGE_V21":
                 if (isUnMeteredNetWork(context))
                     startUploadService(context);
                 break;
