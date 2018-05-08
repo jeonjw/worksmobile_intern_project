@@ -58,11 +58,6 @@
 
         <service android:name=".service.MediaStoreService" />
 
-        <service
-            android:name=".service.MediaStoreJobService"
-            android:exported="true"
-            android:permission="android.permission.BIND_JOB_SERVICE" />
-
         <service android:name=".service.BackgroundUploadService" />
 
 

@@ -37,7 +37,6 @@ import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
-import com.worksmobile.wmproject.service.MediaStoreJobService;
 import com.worksmobile.wmproject.service.MediaStoreService;
 import com.worksmobile.wmproject.util.FileUtils;
 
@@ -198,12 +197,15 @@ public class MainActivity extends AppCompatActivity
 
 
     private void setJobSchedule() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            MediaStoreJobService.scheduleJob(this);
-        } else {
-            Intent mediaStoreService = new Intent(MainActivity.this, MediaStoreService.class);
-            startService(mediaStoreService);
-        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//            MediaStoreJobService.scheduleJob(this);
+//        } else {
+//            Intent mediaStoreService = new Intent(MainActivity.this, MediaStoreService.class);
+//            startService(mediaStoreService);
+//        }
+
+        Intent mediaStoreService = new Intent(MainActivity.this, MediaStoreService.class);
+        startService(mediaStoreService);
     }
 
 

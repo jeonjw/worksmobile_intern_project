@@ -50,6 +50,7 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
 
     private void startUploadService(Context context) {
         Intent serviceIntent = new Intent(context, BackgroundUploadService.class);
+//        context.startService(serviceIntent);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             context.startForegroundService(serviceIntent);
         else
