@@ -31,6 +31,7 @@ import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.worksmobile.wmproject.MyBroadcastReceiver;
 import com.worksmobile.wmproject.R;
@@ -253,10 +254,10 @@ public class MainActivity extends AppCompatActivity
                         Date nowDate = new Date();
                         String tempDate = sdFormat.format(nowDate);
                         AppDatabase.getDatabase(this).fileDAO().insertFileStatus(new FileStatus(path, tempDate, "UPLOAD"));
-
+                        Toast.makeText(this, "선택된 파일을 업로드 요청 합니다.", Toast.LENGTH_SHORT).show();
                         sendNewMediaBroadCast();
                     } else {
-                        Snackbar.make(bottomView, "가져올 수 없는 파일 입니다.", Snackbar.LENGTH_SHORT).show();
+                        Toast.makeText(this, "가져올 수 없는 파일 입니다.", Toast.LENGTH_SHORT).show();
                     }
                 }
                 break;

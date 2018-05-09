@@ -43,6 +43,7 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
 
         DriveFile file = fileList.get(position);
         String mimeType = file.getMimeType();
+
         String thumbnailLink = file.getThumbnailLink();
         if (mimeType.contains("image") || mimeType.contains("video") && file.getThumbnailLink() != null)
             thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));

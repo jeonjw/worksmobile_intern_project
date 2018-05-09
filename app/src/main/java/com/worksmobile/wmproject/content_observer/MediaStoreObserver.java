@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.provider.MediaStore;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.worksmobile.wmproject.MyBroadcastReceiver;
 import com.worksmobile.wmproject.room.AppDatabase;
@@ -51,6 +52,7 @@ public class MediaStoreObserver extends ContentObserver {
             }
 
             Log.d(TAG, "Media 추가");
+            Toast.makeText(context, "새로운 미디어 추가 ", Toast.LENGTH_SHORT).show();
             DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
             Date nowDate = new Date();
             String tempDate = sdFormat.format(nowDate);

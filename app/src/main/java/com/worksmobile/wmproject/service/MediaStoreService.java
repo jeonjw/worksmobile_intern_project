@@ -8,6 +8,7 @@ import android.os.IBinder;
 import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.widget.Toast;
 
 import com.worksmobile.wmproject.content_observer.MediaStoreObserver;
 
@@ -29,6 +30,8 @@ public class MediaStoreService extends Service {
     public void onDestroy() {
         unregisterObserver();
         Log.d(TAG, "Service Destroy");
+
+        Toast.makeText(this, "Media Store Service Destroy", Toast.LENGTH_SHORT).show();
         super.onDestroy();
     }
 
