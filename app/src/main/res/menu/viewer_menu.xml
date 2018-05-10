@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/toolbar_detail_file_info"
+        android:title="상세 정보"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/toolbar_download"
+        android:title="다운로드"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/toolbar_delete"
+        android:title="삭제"
+        app:showAsAction="never" />
+</menu>

@@ -1,12 +1,12 @@
 package com.worksmobile.wmproject;
 
 import android.content.Context;
+import android.support.constraint.ConstraintLayout;
 import android.support.v4.view.PagerAdapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 
 import com.worksmobile.wmproject.value_object.DriveFile;
 
@@ -20,6 +20,7 @@ public class ViewerPagerAdapter extends PagerAdapter {
     public ViewerPagerAdapter(Context context, List<DriveFile> thumbnailLinkList) {
         mLayoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         this.fileList = thumbnailLinkList;
+
     }
 
     @Override
@@ -35,10 +36,9 @@ public class ViewerPagerAdapter extends PagerAdapter {
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
         View itemView = mLayoutInflater.inflate(R.layout.pager_item, container, false);
-        ImageView imageView = itemView.findViewById(R.id.imageView);
+        ImageView imageView = itemView.findViewById(R.id.image_viewer_imageview);
 
         DriveFile file = fileList.get(position);
-
         String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
         GlideApp.with(imageView.getContext())
                 .load(thumbnailLink)
@@ -49,8 +49,18 @@ public class ViewerPagerAdapter extends PagerAdapter {
     }
 
     @Override
+    public int getItemPosition(Object object) {
+        if (fileList.contains(object)) {
+            return fileList.indexOf(object);
+        } else {
+            return POSITION_NONE;
+        }
+    }
+
+
+    @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
-        container.removeView((LinearLayout) object);
+        container.removeView((ConstraintLayout) object);
     }
 
     public String replaceThumbnailSize(String string, String properSize) {

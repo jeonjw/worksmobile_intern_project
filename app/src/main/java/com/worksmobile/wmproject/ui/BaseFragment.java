@@ -1,7 +1,6 @@
 package com.worksmobile.wmproject.ui;
 
 
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
@@ -11,6 +10,7 @@ import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -37,6 +37,7 @@ import java.util.Date;
 import java.util.Locale;
 
 public abstract class BaseFragment extends Fragment implements OnSelectModeClickListener {
+    private static final String TAG = "BASE_FRAGMENT";
 
     protected RecyclerView recyclerView;
     protected View.OnClickListener itemClickListener;
@@ -142,7 +143,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                     item.setChecked(true);
                 }
                 currentSortingCriteria = item.getItemId();
-                sorting(item.getItemId());
+                sortList(item.getItemId());
                 break;
 
         }
@@ -157,7 +158,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 adapter.clearCheckedItem();
                 fileList.clear();
                 fileList.addAll(Arrays.asList(driveFiles));
-                sorting(currentSortingCriteria);
+                sortList(currentSortingCriteria);
                 adapter.notifyDataSetChanged();
                 if (swipeContainer.isRefreshing())
                     swipeContainer.setRefreshing(false);
@@ -184,7 +185,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         });
     }
 
-    private void sorting(int sortBy) {
+    private void sortList(int sortBy) {
         switch (sortBy) {
             case R.id.taken_time_new:
                 Collections.sort(fileList, (o1, o2) -> {
@@ -256,7 +257,15 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         createAlertDialog(adapter.getCheckedFileList().size());
     }
 
-    public void requestDelete() {
+    @Override
+    public void onResume() {
+        Log.d(TAG, "onResume");
+//        requestWholeList();
+        super.onResume();
+
+    }
+
+    public void deleteFile() {
         deleteCount = 0;
         int totalDeleteCount = adapter.getCheckedFileList().size();
 
@@ -301,7 +310,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 .setNegativeButton("예",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                requestDelete();
+                                deleteFile();
                                 dialog.cancel();
                             }
                         });

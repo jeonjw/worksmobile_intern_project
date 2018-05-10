@@ -55,7 +55,6 @@ public class MediaStoreJobService extends JobService {
         JobScheduler jobScheduler = (JobScheduler) context.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         jobScheduler.schedule(MEDIASTORE_JOB);
         Log.d(TAG, "Scheduled");
-
     }
 
     public static boolean isScheduled(Context context) {
@@ -145,6 +144,4 @@ public class MediaStoreJobService extends JobService {
             getContentResolver().unregisterContentObserver(videoObserver);
         }
     }
-
-
 }

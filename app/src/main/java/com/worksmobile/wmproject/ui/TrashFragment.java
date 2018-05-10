@@ -21,7 +21,7 @@ public class TrashFragment extends BaseFragment {
     }
 
     @Override
-    public void requestDelete() {
+    public void deleteFile() {
         deleteCount = 0;
         int totalDeleteCount = adapter.getCheckedFileList().size();
         progressBar.setVisibility(View.VISIBLE);
