@@ -11,9 +11,39 @@ public class MediaMetadata implements Serializable {
     private int height;
     @SerializedName("time")
     private String time;
+    @SerializedName("isoSpeed")
+    private int isoSpeed;
+    @SerializedName("cameraModel")
+    private String cameraModel;
+    @SerializedName("meteringMode")
+    private String meteringMode;
+    @SerializedName("exposureMode")
+    private String exposureMode;
+    @SerializedName("focalLength")
+    private float focalLength;
     @SerializedName("location")
     private LocationInfo locationInfo;
 
+
+    public String getCameraModel() {
+        return cameraModel;
+    }
+
+    public String getMeteringMode() {
+        return meteringMode;
+    }
+
+    public String getExposureMode() {
+        return exposureMode;
+    }
+
+    public float getFocalLength() {
+        return focalLength;
+    }
+
+    public int getIsoSpeed() {
+        return isoSpeed;
+    }
 
     public int getWidth() {
         return width;

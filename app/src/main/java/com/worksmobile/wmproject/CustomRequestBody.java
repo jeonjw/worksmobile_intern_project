@@ -42,7 +42,7 @@ public class CustomRequestBody extends RequestBody {
     }
 
     @Override
-    public long contentLength() throws IOException {
+    public long contentLength() {
         return file.length();
     }
 
@@ -82,8 +82,7 @@ public class CustomRequestBody extends RequestBody {
         ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connectivityManager.getActiveNetworkInfo();
         if (networkInfo != null && networkInfo.isConnectedOrConnecting()) {
-            if (networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX)
-                return true;
+            return networkInfo.getType() == ConnectivityManager.TYPE_WIFI || networkInfo.getType() == ConnectivityManager.TYPE_WIMAX;
         }
         return false;
     }

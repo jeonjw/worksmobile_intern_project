@@ -6,13 +6,13 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
@@ -101,7 +101,12 @@ public class ImageViewerActivity extends AppCompatActivity {
         if (item.getItemId() == android.R.id.home) {
             finish();
         } else if (item.getItemId() == R.id.toolbar_detail_file_info) {
-            getSupportFragmentManager().beginTransaction().add(R.id.image_viewer_root_view,new FileDetailInfoFragment()).addToBackStack(null).commit();
+            Fragment fragment = new FileDetailInfoFragment();
+            Bundle bundle = new Bundle();
+            bundle.putSerializable("DRIVE_FILE", currentFile);
+            fragment.setArguments(bundle);
+
+            getSupportFragmentManager().beginTransaction().add(R.id.image_viewer_root_view, fragment).addToBackStack(null).commit();
         } else if (item.getItemId() == R.id.toolbar_download) {
             downloadFile(currentFile);
         } else if (item.getItemId() == R.id.toolbar_delete) {
