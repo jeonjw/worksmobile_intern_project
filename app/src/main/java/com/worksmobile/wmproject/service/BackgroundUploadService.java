@@ -79,9 +79,9 @@ public class BackgroundUploadService extends Service {
 
     public void handleMessage(Message msg) {
         switch (msg.what) {
-            case READY:
-                handlerThread.sendQueryRequest();
-                break;
+//            case READY:
+//                handlerThread.sendQueryRequest();
+//                break;
             case UPLOAD_SUCCESS:
                 handleUploadResult(UPLOAD_SUCCESS);
                 break;
@@ -232,17 +232,18 @@ public class BackgroundUploadService extends Service {
                             status.setStatus("UPLOAD");
                             appDatabase.fileDAO().updateFileStatus(status);
                             break;
-                        case QUERY:
-                            createUploadList();
-                            break;
+//                        case QUERY:
+//                            createUploadList();
+//                            break;
                         case UPLOAD_REQUEST_FINISH:
                             mainThreadHandler.sendEmptyMessage(UPLOAD_REQUEST_FINISH);
                             break;
                     }
                 }
             };
-            Message message = handler.obtainMessage(READY);
-            mainThreadHandler.sendMessageAtFrontOfQueue(message);
+//            Message message = handler.obtainMessage(READY);
+//            mainThreadHandler.sendMessageAtFrontOfQueue(message);
+            createUploadList();
         }
 
         public void sendUploadRequest(FileStatus fileStatus) {

@@ -46,7 +46,8 @@ public class MediaStoreObserver extends ContentObserver {
         Log.d(TAG, "onChange Previous count : " + previousCount + " Current count : " + currentCount);
 
         if (currentCount > previousCount) {
-            if (isDownlodFileFromDrive(getLastPictureLocation())) {
+            String lastPicturePath = getLastPictureLocation();
+            if (isDownlodFileFromDrive(lastPicturePath)) {
                 return;
             }
 
@@ -54,7 +55,7 @@ public class MediaStoreObserver extends ContentObserver {
             DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
             Date nowDate = new Date();
             String tempDate = sdFormat.format(nowDate);
-            AppDatabase.getDatabase(context).fileDAO().insertFileStatus(new FileStatus(getLastPictureLocation(), tempDate, "UPLOAD"));
+            AppDatabase.getDatabase(context).fileDAO().insertFileStatus(new FileStatus(lastPicturePath, tempDate, "UPLOAD"));
 
             if (handler.hasMessages(CALLBACK_PRESENT_INTEGER) && broakdCastTask != null) {
                 handler.removeCallbacks(broakdCastTask);
