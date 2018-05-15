@@ -161,7 +161,6 @@ public class MainActivity extends AppCompatActivity
         intent.addCategory(Intent.CATEGORY_OPENABLE);
 
         startActivityForResult(Intent.createChooser(intent, "Select a File to Upload"), FILE_SELECT_CODE);
-
     }
 
     private void initDrawerToggle() {
@@ -251,7 +250,7 @@ public class MainActivity extends AppCompatActivity
                         Date nowDate = new Date();
                         String tempDate = sdFormat.format(nowDate);
                         AppDatabase.getDatabase(this).fileDAO().insertFileStatus(new FileStatus(path, tempDate, "UPLOAD"));
-
+                        Snackbar.make(bottomView, "선택한 파일 업로드 요청", Snackbar.LENGTH_SHORT).show();
                         sendNewMediaBroadCast();
                     } else {
                         Snackbar.make(bottomView, "가져올 수 없는 파일 입니다.", Snackbar.LENGTH_SHORT).show();

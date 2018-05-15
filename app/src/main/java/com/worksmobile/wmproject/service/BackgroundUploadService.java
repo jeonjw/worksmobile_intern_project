@@ -5,7 +5,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
@@ -16,11 +15,11 @@ import android.util.Log;
 import com.worksmobile.wmproject.BackgroundServiceHandler;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
-import com.worksmobile.wmproject.value_object.UploadResult;
 import com.worksmobile.wmproject.room.AppDatabase;
 import com.worksmobile.wmproject.room.FileStatus;
 import com.worksmobile.wmproject.ui.MainActivity;
 import com.worksmobile.wmproject.util.DriveUtils;
+import com.worksmobile.wmproject.value_object.UploadResult;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,7 +34,6 @@ public class BackgroundUploadService extends Service {
     private static final String TAG = "UPLOAD_SERVICE";
     private static final int PROGRESS_NOTIFICATION_ID = 100;
     private static final int FINISH_NOTIFICATION_ID = 200;
-    public static final int READY = 300;
     public static final int UPLOAD_REQUEST = 700;
     public static final int UPLOAD_SUCCESS = 701;
     public static final int UPLOAD_FAIL = 702;
@@ -79,9 +77,6 @@ public class BackgroundUploadService extends Service {
 
     public void handleMessage(Message msg) {
         switch (msg.what) {
-//            case READY:
-//                handlerThread.sendQueryRequest();
-//                break;
             case UPLOAD_SUCCESS:
                 handleUploadResult(UPLOAD_SUCCESS);
                 break;
@@ -122,7 +117,7 @@ public class BackgroundUploadService extends Service {
         Log.d(TAG, "COUNT : " + currentProgress + "TOTAL : " + totalUploadCount);
     }
 
-    private void printDBWithRoom() {
+    private void printDB() {
         for (FileStatus fileStatus : appDatabase.fileDAO().getAll()) {
             Log.d(TAG, "CURSOR " + fileStatus.getId() + " LocationInfo : " + fileStatus.getLocation() + " STATUS : " + fileStatus.getStatus() + " DATE : " + fileStatus.getDate());
         }
@@ -152,14 +147,14 @@ public class BackgroundUploadService extends Service {
         pendingIntent = PendingIntent.getActivity(this, 101, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 
         notificationBuilder = new NotificationCompat.Builder(this, "WM_PROJECT")
-                        .setSmallIcon(R.drawable.ic_cloud)
-                        .setColor(getResources().getColor(R.color.colorPrimary))
-                        .setVibrate(new long[]{0})
-                        .setContentTitle(getString(R.string.notification_title))
-                        .setContentText(tryMessage)
-                        .setAutoCancel(true)
-                        .setProgress(progressMax, 0, false)
-                        .setContentIntent(pendingIntent);
+                .setSmallIcon(R.drawable.ic_cloud)
+                .setColor(getResources().getColor(R.color.colorPrimary))
+                .setVibrate(new long[]{0})
+                .setContentTitle(getString(R.string.notification_title))
+                .setContentText(tryMessage)
+                .setAutoCancel(true)
+                .setProgress(progressMax, 0, false)
+                .setContentIntent(pendingIntent);
 
         startForeground(PROGRESS_NOTIFICATION_ID, notificationBuilder.build());
         isProgressNotificationRunning = true;
@@ -232,17 +227,12 @@ public class BackgroundUploadService extends Service {
                             status.setStatus("UPLOAD");
                             appDatabase.fileDAO().updateFileStatus(status);
                             break;
-//                        case QUERY:
-//                            createUploadList();
-//                            break;
                         case UPLOAD_REQUEST_FINISH:
                             mainThreadHandler.sendEmptyMessage(UPLOAD_REQUEST_FINISH);
                             break;
                     }
                 }
             };
-//            Message message = handler.obtainMessage(READY);
-//            mainThreadHandler.sendMessageAtFrontOfQueue(message);
             createUploadList();
         }
 

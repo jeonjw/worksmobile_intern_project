@@ -43,14 +43,20 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
 
         DriveFile file = fileList.get(position);
         String mimeType = file.getMimeType();
-        if (mimeType.contains("image") || mimeType.contains("video") && file.getThumbnailLink() != null) {
-            String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
-
-            GlideApp.with(holder.imageView)
-                    .load(thumbnailLink)
-                    .override(file.getWidth() * 3 / 20, file.getHeight() * 3 / 20)
-                    .centerInside()
-                    .into(holder.imageView);
+        if (file.getThumbnailLink() != null) {
+            if (mimeType.contains("image") || mimeType.contains("video")) {
+                String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+                GlideApp.with(holder.imageView)
+                        .load(thumbnailLink)
+                        .override(file.getWidth() * 3 / 20, file.getHeight() * 3 / 20)
+                        .centerInside()
+                        .into(holder.imageView);
+            } else {
+                GlideApp.with(holder.imageView)
+                        .load(file.getThumbnailLink())
+                        .centerInside()
+                        .into(holder.imageView);
+            }
         } else { //섬네일 링크가 없을 때
             int imageId = mimeType.contains("video") ? R.drawable.video_default : R.drawable.image_default;
             GlideApp.with(holder.imageView)
