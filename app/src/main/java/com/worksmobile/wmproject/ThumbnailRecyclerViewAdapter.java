@@ -1,5 +1,6 @@
 package com.worksmobile.wmproject;
 
+import android.databinding.ObservableArrayList;
 import android.databinding.ObservableList;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -16,11 +17,10 @@ import java.util.List;
 
 public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<ThumbnailRecyclerViewAdapter.ThumbnailViewHolder> {
 
-    private List<DriveFile> fileList;
+    private ObservableArrayList<DriveFile> fileList;
     private View.OnClickListener itemClickListener;
     private OnModeChangeListener modeChangeListener;
     private final WeakReferenceOnListChangedCallback onListChangedCallback;
-    private boolean selectMode;
     private boolean selectAll;
 
     public ThumbnailRecyclerViewAdapter(View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
@@ -46,17 +46,10 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         return fileList.size();
     }
 
-    public void setFileList(List<DriveFile> fileList) {
+    public void setFileList(ObservableArrayList<DriveFile> fileList) {
         this.fileList = fileList;
-    }
-
-    public void setSelectMode(boolean show) {
-        selectMode = show;
-
-        if (!show)
-            clearCheckedItem();
-
-        notifyDataSetChanged();
+        this.fileList.removeOnListChangedCallback(onListChangedCallback);
+        this.fileList.addOnListChangedCallback(onListChangedCallback);
     }
 
     public void clearCheckedItem() {
@@ -77,7 +70,6 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     public void selectItem(int position) {
         DriveFile file = fileList.get(position);
         file.changeCheckedValue();
-        notifyItemChanged(position);
     }
 
     public void checkAllItems() {
@@ -85,15 +77,10 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         for (DriveFile file : fileList) {
             file.setChecked(selectAll);
         }
-        notifyDataSetChanged();
     }
 
     public void setItemClickListener(View.OnClickListener itemClickListener) {
         this.itemClickListener = itemClickListener;
-    }
-
-    public boolean isSelectMode() {
-        return selectMode;
     }
 
     class ThumbnailViewHolder extends RecyclerView.ViewHolder {

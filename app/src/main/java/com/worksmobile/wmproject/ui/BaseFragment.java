@@ -1,6 +1,7 @@
 package com.worksmobile.wmproject.ui;
 
 
+import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
@@ -74,6 +75,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 3));
         recyclerView.addItemDecoration(new ThumbnailItemDecoration(3, 3));
         recyclerView.setAdapter(adapter);
+
         binding.setThumbnailList(fileList);
 
 
@@ -120,12 +122,11 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     }
 
     private void chageSelectMode() {
-        adapter.setSelectMode(true);
         adapter.setItemClickListener(selectModeClickListener);
     }
 
     private void changeViewerMode() {
-        adapter.setSelectMode(false);
+        adapter.clearCheckedItem();
         adapter.setItemClickListener(itemClickListener);
     }
 
@@ -289,7 +290,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                         if (deleteCount == totalDeleteCount) {
                             progressBar.setVisibility(View.GONE);
                             adapter.clearCheckedItem();
-                            adapter.notifyDataSetChanged();
+//                            adapter.notifyDataSetChanged();
                         }
                     }
                 }

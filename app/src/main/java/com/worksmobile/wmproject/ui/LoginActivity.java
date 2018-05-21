@@ -30,14 +30,16 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
         ActivityLoginBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_login);
-
+        binding.setActivity(this);
 
         if (restoreAuthState() != null) {
             Intent intent = new Intent(LoginActivity.this, MainActivity.class);
             startActivity(intent);
             finish();
         }
+    }
 
+    public void login() {
         String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
                 "client_id=" + getString(R.string.client_id) + "&" +
                 "response_type=code&" +
@@ -46,14 +48,9 @@ public class LoginActivity extends AppCompatActivity {
                 "scope=https://www.googleapis.com/auth/drive&" +
                 "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
 
-        binding.loginButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL));
-                startActivity(intent);
-                finish();
-            }
-        });
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL));
+        startActivity(intent);
+        finish();
     }
 
     private void getAuthCode() {
@@ -70,7 +67,6 @@ public class LoginActivity extends AppCompatActivity {
             }
         }
     }
-
 
     private void checkIntent(@Nullable Intent intent) {
         if (intent != null) {

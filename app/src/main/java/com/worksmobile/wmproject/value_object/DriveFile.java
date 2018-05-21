@@ -1,11 +1,15 @@
 package com.worksmobile.wmproject.value_object;
 
+import android.databinding.BaseObservable;
+import android.databinding.Bindable;
+
 import com.google.gson.annotations.SerializedName;
+import com.worksmobile.wmproject.BR;
 
 import java.io.Serializable;
 import java.util.Date;
 
-public class DriveFile implements Serializable {
+public class DriveFile extends BaseObservable implements Serializable {
 
     @SerializedName("id")
     private String id;
@@ -37,12 +41,20 @@ public class DriveFile implements Serializable {
 
     private boolean checked;
 
+    @Bindable
     public boolean isChecked() {
         return checked;
     }
 
+    @Bindable
+    public void setChecked(boolean checked) {
+        this.checked = checked;
+        notifyPropertyChanged(BR.checked);
+    }
+
     public void changeCheckedValue() {
         checked ^= true;
+        notifyPropertyChanged(BR.checked);
     }
 
     public MediaMetadata getImageMediaMetadata() {
@@ -199,7 +211,4 @@ public class DriveFile implements Serializable {
     }
 
 
-    public void setChecked(boolean checked) {
-        this.checked = checked;
-    }
 }
