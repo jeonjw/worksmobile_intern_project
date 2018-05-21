@@ -3,6 +3,8 @@ package com.worksmobile.wmproject.ui;
 
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.databinding.DataBindingUtil;
+import android.databinding.ObservableArrayList;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -25,6 +27,7 @@ import com.worksmobile.wmproject.callback.ListCallback;
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
 import com.worksmobile.wmproject.callback.StateCallback;
+import com.worksmobile.wmproject.databinding.FragmentBaseBinding;
 import com.worksmobile.wmproject.value_object.DriveFile;
 import com.worksmobile.wmproject.value_object.MediaMetadata;
 
@@ -39,9 +42,11 @@ import java.util.Locale;
 public abstract class BaseFragment extends Fragment implements OnSelectModeClickListener {
     private static final String TAG = "BASE_FRAGMENT";
 
+    private FragmentBaseBinding binding;
+
     protected RecyclerView recyclerView;
     protected View.OnClickListener itemClickListener;
-    protected ArrayList<DriveFile> fileList;
+    public ObservableArrayList<DriveFile> fileList;
 
     private SwipeRefreshLayout swipeContainer;
     protected DriveHelper driveHelper;
@@ -53,23 +58,26 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     private int deleteCount = 0;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_photo, container, false);
+        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_base, container, false);
+        View view = binding.getRoot();
         setHasOptionsMenu(true);
 
         currentSortingCriteria = R.id.taken_time_new;
         driveHelper = new DriveHelper(getContext());
-        fileList = new ArrayList<>();
+        fileList= new ObservableArrayList<>();
 
-        recyclerView = view.findViewById(R.id.thumbnail_recyclerview);
-        progressBar = view.findViewById(R.id.view_progress_bar);
+        recyclerView = binding.thumbnailRecyclerview;
+        progressBar = binding.viewProgressBar;
 
         initClickListener();
-        adapter = new ThumbnailRecyclerViewAdapter(fileList, itemClickListener, modeChangeListener);
+        adapter = new ThumbnailRecyclerViewAdapter(itemClickListener, modeChangeListener);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 3));
         recyclerView.addItemDecoration(new ThumbnailItemDecoration(3, 3));
         recyclerView.setAdapter(adapter);
+        binding.setThumbnailList(fileList);
 
-        swipeContainer = view.findViewById(R.id.pull_to_refresh);
+
+        swipeContainer = binding.pullToRefresh;
         swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
@@ -159,7 +167,6 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 fileList.clear();
                 fileList.addAll(Arrays.asList(driveFiles));
                 sortList(currentSortingCriteria);
-                adapter.notifyDataSetChanged();
                 if (swipeContainer.isRefreshing())
                     swipeContainer.setRefreshing(false);
 
@@ -281,8 +288,8 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 
                         if (deleteCount == totalDeleteCount) {
                             progressBar.setVisibility(View.GONE);
-                            adapter.notifyDataSetChanged();
                             adapter.clearCheckedItem();
+                            adapter.notifyDataSetChanged();
                         }
                     }
                 }

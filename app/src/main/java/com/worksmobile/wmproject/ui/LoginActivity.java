@@ -2,6 +2,7 @@ package com.worksmobile.wmproject.ui;
 
 import android.content.Context;
 import android.content.Intent;
+import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -14,6 +15,7 @@ import com.google.gson.Gson;
 import com.worksmobile.wmproject.DriveHelper;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.TokenCallback;
+import com.worksmobile.wmproject.databinding.ActivityLoginBinding;
 import com.worksmobile.wmproject.value_object.Token;
 
 public class LoginActivity extends AppCompatActivity {
@@ -27,6 +29,14 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+        ActivityLoginBinding binding = DataBindingUtil.setContentView(this, R.layout.activity_login);
+
+
+        if (restoreAuthState() != null) {
+            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+            startActivity(intent);
+            finish();
+        }
 
         String AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth?" +
                 "client_id=" + getString(R.string.client_id) + "&" +
@@ -36,16 +46,13 @@ public class LoginActivity extends AppCompatActivity {
                 "scope=https://www.googleapis.com/auth/drive&" +
                 "redirect_uri=com.worksmobile.wmproject:/oauth2callback";
 
-        if (restoreAuthState() != null) {
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        }
-
-        findViewById(R.id.login_button).setOnClickListener((View view) -> {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL));
-            startActivity(intent);
-            finish();
+        binding.loginButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(AUTH_URL));
+                startActivity(intent);
+                finish();
+            }
         });
     }
 

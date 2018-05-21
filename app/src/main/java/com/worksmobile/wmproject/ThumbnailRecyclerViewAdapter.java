@@ -1,79 +1,44 @@
 package com.worksmobile.wmproject;
 
+import android.databinding.ObservableList;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
-import android.widget.ImageView;
 
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
+import com.worksmobile.wmproject.databinding.ThumbnailItemBinding;
 import com.worksmobile.wmproject.value_object.DriveFile;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<ThumbnailRecyclerViewAdapter.ThumbnailViewHolder> {
+
     private List<DriveFile> fileList;
-    private Set<Integer> checkedItems;
     private View.OnClickListener itemClickListener;
     private OnModeChangeListener modeChangeListener;
-    private boolean isCheckBoxShowing;
+    private final WeakReferenceOnListChangedCallback onListChangedCallback;
+    private boolean selectMode;
     private boolean selectAll;
 
-    public ThumbnailRecyclerViewAdapter(List<DriveFile> thumbnailLinkList, View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
-        this.fileList = thumbnailLinkList;
+    public ThumbnailRecyclerViewAdapter(View.OnClickListener clickListener, OnModeChangeListener modeChangeListener) {
         this.itemClickListener = clickListener;
         this.modeChangeListener = modeChangeListener;
-        checkedItems = new HashSet<>();
-
+        this.onListChangedCallback = new WeakReferenceOnListChangedCallback(this);
     }
 
     @Override
     public ThumbnailViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.thumbnail_item, parent, false);
-        return new ThumbnailViewHolder(view);
+        ThumbnailItemBinding binding = ThumbnailItemBinding.inflate(LayoutInflater.from(parent.getContext()), parent, false);
+        return new ThumbnailViewHolder(binding);
     }
 
     @Override
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
-
         DriveFile file = fileList.get(position);
-        String mimeType = file.getMimeType();
-        if (file.getThumbnailLink() != null) {
-            if (mimeType.contains("image") || mimeType.contains("video")) {
-                String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
-                GlideApp.with(holder.imageView)
-                        .load(thumbnailLink)
-                        .override(file.getWidth() * 3 / 20, file.getHeight() * 3 / 20)
-                        .centerInside()
-                        .into(holder.imageView);
-            } else {
-                GlideApp.with(holder.imageView)
-                        .load(file.getThumbnailLink())
-                        .centerInside()
-                        .into(holder.imageView);
-            }
-        } else { //섬네일 링크가 없을 때
-            int imageId = mimeType.contains("video") ? R.drawable.video_default : R.drawable.image_default;
-            GlideApp.with(holder.imageView)
-                    .load(imageId)
-                    .centerInside()
-                    .into(holder.imageView);
-        }
-
-        if (isCheckBoxShowing) {
-            holder.checkBox.setVisibility(View.VISIBLE);
-            if (checkedItems.contains(position))
-                holder.checkBox.setChecked(true);
-            else
-                holder.checkBox.setChecked(false);
-        } else {
-            holder.checkBox.setVisibility(View.INVISIBLE);
-        }
+        holder.bind(file);
     }
 
     @Override
@@ -81,26 +46,12 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         return fileList.size();
     }
 
-    private String calculateProperThumbnailSize(int width, int height) {
-        String properWidth = String.valueOf(width * 3 / 20);
-        String properHeight = String.valueOf(height * 3 / 20);
-        return "w" + properWidth + "-" + "h" + properHeight;
-
-    }
-
-    public String replaceThumbnailSize(String string, String replacement) {
-        int pos = string.lastIndexOf("s220");
-        if (pos > -1) {
-            return string.substring(0, pos)
-                    + replacement
-                    + string.substring(pos + "s220".length(), string.length());
-        } else {
-            return string;
-        }
+    public void setFileList(List<DriveFile> fileList) {
+        this.fileList = fileList;
     }
 
     public void setSelectMode(boolean show) {
-        isCheckBoxShowing = show;
+        selectMode = show;
 
         if (!show)
             clearCheckedItem();
@@ -109,80 +60,118 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     }
 
     public void clearCheckedItem() {
-        checkedItems.clear();
+        for (DriveFile file : fileList) {
+            file.setChecked(false);
+        }
     }
 
     public ArrayList<DriveFile> getCheckedFileList() {
         ArrayList<DriveFile> checkedFileList = new ArrayList<>();
-        for (Integer i : checkedItems) {
-            checkedFileList.add(fileList.get(i));
-
+        for (DriveFile file : fileList) {
+            if (file.isChecked())
+                checkedFileList.add(file);
         }
         return checkedFileList;
     }
 
     public void selectItem(int position) {
-        if (checkedItems.contains(position))
-            checkedItems.remove(position);
-        else
-            checkedItems.add(position);
-
+        DriveFile file = fileList.get(position);
+        file.changeCheckedValue();
         notifyItemChanged(position);
     }
 
     public void checkAllItems() {
         selectAll ^= true;
-        if (selectAll) {
-            for (int i = 0; i < fileList.size(); i++) {
-                checkedItems.add(i);
-            }
-        } else {
-            checkedItems.clear();
+        for (DriveFile file : fileList) {
+            file.setChecked(selectAll);
         }
         notifyDataSetChanged();
     }
 
     public void setItemClickListener(View.OnClickListener itemClickListener) {
         this.itemClickListener = itemClickListener;
-        notifyDataSetChanged();
     }
 
+    public boolean isSelectMode() {
+        return selectMode;
+    }
 
     class ThumbnailViewHolder extends RecyclerView.ViewHolder {
 
-        private ImageView imageView;
-        private CheckBox checkBox;
+        private ThumbnailItemBinding binding;
 
-        public ThumbnailViewHolder(View itemView) {
-            super(itemView);
-            imageView = itemView.findViewById(R.id.thumbnail_viewholder_imageview);
-            checkBox = itemView.findViewById(R.id.thumbnail_checkbox);
+        public ThumbnailViewHolder(ThumbnailItemBinding binding) {
+            super(binding.getRoot());
+            this.binding = binding;
 
-            checkBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean checked) {
-                    if (checked) {
-                        checkedItems.add(getAdapterPosition());
-                    } else {
-                        checkedItems.remove(getAdapterPosition());
-                    }
-                }
-            });
-            itemView.setOnClickListener(new View.OnClickListener() {
+            binding.getRoot().setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
                     itemClickListener.onClick(view);
                 }
             });
-            itemView.setOnLongClickListener(new View.OnLongClickListener() {
+
+            binding.getRoot().setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-                    checkBox.setChecked(true);
-                    notifyDataSetChanged();
+                    binding.getDriveFile().changeCheckedValue();
                     modeChangeListener.onChanged();
                     return true;
                 }
             });
+        }
+
+        public void bind(DriveFile driveFile) {
+            binding.setDriveFile(driveFile);
+        }
+    }
+
+    private static class WeakReferenceOnListChangedCallback extends ObservableList.OnListChangedCallback {
+
+        private final WeakReference<ThumbnailRecyclerViewAdapter> adapterReference;
+
+        public WeakReferenceOnListChangedCallback(ThumbnailRecyclerViewAdapter thumbnailRecyclerViewAdapter) {
+            this.adapterReference = new WeakReference<>(thumbnailRecyclerViewAdapter);
+        }
+
+        @Override
+        public void onChanged(ObservableList sender) {
+            RecyclerView.Adapter adapter = adapterReference.get();
+            if (adapter != null) {
+                adapter.notifyDataSetChanged();
+            }
+        }
+
+        @Override
+        public void onItemRangeChanged(ObservableList sender, int positionStart, int itemCount) {
+            RecyclerView.Adapter adapter = adapterReference.get();
+            if (adapter != null) {
+                adapter.notifyItemRangeChanged(positionStart, itemCount);
+            }
+        }
+
+        @Override
+        public void onItemRangeInserted(ObservableList sender, int positionStart, int itemCount) {
+            RecyclerView.Adapter adapter = adapterReference.get();
+            if (adapter != null) {
+                adapter.notifyItemRangeInserted(positionStart, itemCount);
+            }
+        }
+
+        @Override
+        public void onItemRangeMoved(ObservableList sender, int fromPosition, int toPosition, int itemCount) {
+            RecyclerView.Adapter adapter = adapterReference.get();
+            if (adapter != null) {
+                adapter.notifyItemMoved(fromPosition, toPosition);
+            }
+        }
+
+        @Override
+        public void onItemRangeRemoved(ObservableList sender, int positionStart, int itemCount) {
+            RecyclerView.Adapter adapter = adapterReference.get();
+            if (adapter != null) {
+                adapter.notifyItemRangeRemoved(positionStart, itemCount);
+            }
         }
     }
 }

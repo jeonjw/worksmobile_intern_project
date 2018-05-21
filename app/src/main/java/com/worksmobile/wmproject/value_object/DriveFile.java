@@ -34,6 +34,17 @@ public class DriveFile implements Serializable {
     @SerializedName("videoMediaMetadata")
     private MediaMetadata videoMediaMetadata;
 
+
+    private boolean checked;
+
+    public boolean isChecked() {
+        return checked;
+    }
+
+    public void changeCheckedValue() {
+        checked ^= true;
+    }
+
     public MediaMetadata getImageMediaMetadata() {
         return imageMediaMetadata;
     }
@@ -188,4 +199,7 @@ public class DriveFile implements Serializable {
     }
 
 
+    public void setChecked(boolean checked) {
+        this.checked = checked;
+    }
 }
