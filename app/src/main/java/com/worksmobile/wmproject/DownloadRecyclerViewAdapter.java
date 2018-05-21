@@ -8,6 +8,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.worksmobile.wmproject.util.ImageUtil;
 import com.worksmobile.wmproject.value_object.DownloadItem;
 
 import java.util.List;
@@ -34,11 +35,7 @@ public class DownloadRecyclerViewAdapter extends RecyclerView.Adapter<DownloadRe
         if (file.getImageLink() != null && file.getWidth() != 0 && file.getHeight() != 0)
             thumbnailLink = replaceThumbnailSize(file.getImageLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
 
-
-        GlideApp.with(holder.thumbnailImageView)
-                .load(thumbnailLink)
-                .centerCrop()
-                .into(holder.thumbnailImageView);
+        ImageUtil.loadImageWithUrl(holder.thumbnailImageView, thumbnailLink);
 
         holder.fileNameTextView.setText(file.getFileName());
         if (file.getProgress() < 100) {

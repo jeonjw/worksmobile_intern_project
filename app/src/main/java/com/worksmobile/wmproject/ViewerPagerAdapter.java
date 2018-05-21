@@ -8,19 +8,19 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.worksmobile.wmproject.util.ImageUtil;
 import com.worksmobile.wmproject.value_object.DriveFile;
 
 import java.util.List;
 
 public class ViewerPagerAdapter extends PagerAdapter {
 
-    private LayoutInflater mLayoutInflater;
+    private LayoutInflater layoutInflater;
     private List<DriveFile> fileList;
 
     public ViewerPagerAdapter(Context context, List<DriveFile> thumbnailLinkList) {
-        mLayoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         this.fileList = thumbnailLinkList;
-
     }
 
     @Override
@@ -35,14 +35,12 @@ public class ViewerPagerAdapter extends PagerAdapter {
 
     @Override
     public Object instantiateItem(ViewGroup container, int position) {
-        View itemView = mLayoutInflater.inflate(R.layout.pager_item, container, false);
+        View itemView = layoutInflater.inflate(R.layout.pager_item, container, false);
         ImageView imageView = itemView.findViewById(R.id.image_viewer_imageview);
 
         DriveFile file = fileList.get(position);
-        String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
-        GlideApp.with(imageView.getContext())
-                .load(thumbnailLink)
-                .into(imageView);
+        String thumbnailLink = ImageUtil.replaceThumbnailSize(file.getThumbnailLink(), ImageUtil.calculateProperThumbnailSize(file.getWidth() * 8 / 10, file.getHeight() * 8 / 10));
+        ImageUtil.loadImageWithUrl(imageView, thumbnailLink);
 
         container.addView(itemView);
         return itemView;
@@ -57,28 +55,8 @@ public class ViewerPagerAdapter extends PagerAdapter {
         }
     }
 
-
     @Override
     public void destroyItem(ViewGroup container, int position, Object object) {
         container.removeView((ConstraintLayout) object);
-    }
-
-    public String replaceThumbnailSize(String string, String properSize) {
-        int pos = string.lastIndexOf("s220");
-        if (pos > -1) {
-            return string.substring(0, pos)
-                    + properSize
-                    + string.substring(pos + "s220".length(), string.length());
-        } else {
-            return string;
-        }
-    }
-
-    private String calculateProperThumbnailSize(int width, int height) {
-        String properWidth = String.valueOf(width * 8 / 10);
-        String properHeight = String.valueOf(height * 8 / 10);
-
-        return "w" + properWidth + "-" + "h" + properHeight;
-
     }
 }
