@@ -9,6 +9,7 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
+import com.worksmobile.wmproject.util.ImageUtil;
 import com.worksmobile.wmproject.value_object.DriveFile;
 
 import java.util.ArrayList;
@@ -29,7 +30,6 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         this.itemClickListener = clickListener;
         this.modeChangeListener = modeChangeListener;
         checkedItems = new HashSet<>();
-
     }
 
     @Override
@@ -40,29 +40,20 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
 
     @Override
     public void onBindViewHolder(ThumbnailViewHolder holder, int position) {
-
         DriveFile file = fileList.get(position);
         String mimeType = file.getMimeType();
         if (file.getThumbnailLink() != null) {
             if (mimeType.contains("image") || mimeType.contains("video")) {
-                String thumbnailLink = replaceThumbnailSize(file.getThumbnailLink(), calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
-                GlideApp.with(holder.imageView)
-                        .load(thumbnailLink)
-                        .override(file.getWidth() * 3 / 20, file.getHeight() * 3 / 20)
-                        .centerInside()
-                        .into(holder.imageView);
+                String thumbnailLink = ImageUtil.replaceThumbnailSize(file.getThumbnailLink(),
+                        ImageUtil.calculateProperThumbnailSize(file.getWidth(), file.getHeight()));
+
+                ImageUtil.loadImageWithSizeOverride(holder.imageView, thumbnailLink, file.getWidth() * 3 / 20, file.getHeight() * 3 / 20);
             } else {
-                GlideApp.with(holder.imageView)
-                        .load(file.getThumbnailLink())
-                        .centerInside()
-                        .into(holder.imageView);
+                ImageUtil.loadImageWithUrl(holder.imageView, file.getThumbnailLink());
             }
         } else { //섬네일 링크가 없을 때
             int imageId = mimeType.contains("video") ? R.drawable.video_default : R.drawable.image_default;
-            GlideApp.with(holder.imageView)
-                    .load(imageId)
-                    .centerInside()
-                    .into(holder.imageView);
+            ImageUtil.loadImageWithResourceId(holder.imageView, imageId);
         }
 
         if (isCheckBoxShowing) {
@@ -79,24 +70,6 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
     @Override
     public int getItemCount() {
         return fileList.size();
-    }
-
-    private String calculateProperThumbnailSize(int width, int height) {
-        String properWidth = String.valueOf(width * 3 / 20);
-        String properHeight = String.valueOf(height * 3 / 20);
-        return "w" + properWidth + "-" + "h" + properHeight;
-
-    }
-
-    public String replaceThumbnailSize(String string, String replacement) {
-        int pos = string.lastIndexOf("s220");
-        if (pos > -1) {
-            return string.substring(0, pos)
-                    + replacement
-                    + string.substring(pos + "s220".length(), string.length());
-        } else {
-            return string;
-        }
     }
 
     public void setSelectMode(boolean show) {
@@ -146,7 +119,6 @@ public class ThumbnailRecyclerViewAdapter extends RecyclerView.Adapter<Thumbnail
         this.itemClickListener = itemClickListener;
         notifyDataSetChanged();
     }
-
 
     class ThumbnailViewHolder extends RecyclerView.ViewHolder {
 
