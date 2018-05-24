@@ -25,7 +25,7 @@ public class VideoFragment extends BaseFragment {
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
                 Intent intent = new Intent(getContext(), VideoViewerActivity.class);
-                intent.putExtra("FILE_NAME", fileList.get(itemPosition).getName());
+                intent.putExtra("FILE_NAME", mainViewModel.fileList.get(itemPosition).getName());
                 startActivity(intent);
             }
         };

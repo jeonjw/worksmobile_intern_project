@@ -2,6 +2,7 @@ package com.worksmobile.wmproject.util;
 
 import android.widget.ImageView;
 
+import com.bumptech.glide.RequestManager;
 import com.worksmobile.wmproject.GlideApp;
 
 public class ImageUtil {
@@ -27,6 +28,8 @@ public class ImageUtil {
                 .load(url)
                 .centerInside()
                 .into(imageView);
+
+        RequestManager requestManager = GlideApp.with(imageView);
     }
 
     public static void loadImageWithSizeOverride(ImageView imageView, String url, int width, int height) {

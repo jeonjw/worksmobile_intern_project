@@ -24,7 +24,7 @@ public class PhotoFragment extends BaseFragment {
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
                 Intent intent = new Intent(getContext(), ImageViewerActivity.class);
-                intent.putExtra("FILE_LIST", fileList);
+                intent.putExtra("FILE_LIST", mainViewModel.fileList);
                 intent.putExtra("VIEWER_POSITION", itemPosition);
                 startActivity(intent);
             }

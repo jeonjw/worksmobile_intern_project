@@ -91,16 +91,10 @@ public class MapFragment extends Fragment
         super.onAttach(context);
     }
 
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        menu.findItem(R.id.toolbar_sorting_button).setVisible(false);
-        menu.findItem(R.id.toolbar_check_button).setVisible(false);
-    }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        setHasOptionsMenu(true);
         Log.d(TAG, "onCreateView");
         View view = inflater.inflate(R.layout.fragment_map, container, false);
 

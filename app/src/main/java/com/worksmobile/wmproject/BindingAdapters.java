@@ -2,6 +2,7 @@ package com.worksmobile.wmproject;
 
 import android.databinding.BindingAdapter;
 import android.databinding.ObservableArrayList;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.RecyclerView;
 import android.widget.ImageView;
 
@@ -31,6 +32,17 @@ public class BindingAdapters {
             int imageId = mimeType.contains("video") ? R.drawable.video_default : R.drawable.image_default;
             ImageUtil.loadImageWithResourceId(imageView, imageId);
         }
+    }
+
+    @BindingAdapter("android:onRefresh")
+    public static void setSwipeRefreshLayoutOnRefreshListener(SwipeRefreshLayout view, MainViewModel viewModel) {
+        view.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                viewModel.requestWholeList();
+                System.out.println("TEST onRefresh");
+            }
+        });
     }
 
 

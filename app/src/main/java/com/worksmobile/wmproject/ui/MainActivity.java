@@ -1,28 +1,24 @@
 package com.worksmobile.wmproject.ui;
 
-import android.Manifest;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.net.Uri;
+import android.databinding.DataBindingUtil;
+import android.databinding.Observable;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.NavigationView;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.Window;
@@ -30,45 +26,26 @@ import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.LinearLayout;
-import android.widget.TextView;
 
-import com.worksmobile.wmproject.MyBroadcastReceiver;
+import com.worksmobile.wmproject.MainViewModel;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
-import com.worksmobile.wmproject.room.AppDatabase;
-import com.worksmobile.wmproject.room.FileStatus;
-import com.worksmobile.wmproject.service.MediaStoreJobService;
-import com.worksmobile.wmproject.service.MediaStoreService;
-import com.worksmobile.wmproject.util.FileUtils;
+import com.worksmobile.wmproject.databinding.ActivityMainBinding;
 
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.util.Objects;
 
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
     private static final String TAG = "MAIN_ACTIVITY";
-    private static final int EXTERNAL_STORAGE_PERMISSION_CODE = 777;
-    private static final int FILE_SELECT_CODE = 888;
 
+    private MainViewModel mainViewModel;
     private DrawerLayout drawerLayout;
     private Toolbar toolbar;
-    private TextView toolbarTextView;
     private ActionBarDrawerToggle toggle;
     private OnSelectModeClickListener onSelectModeClickListener;
     private LinearLayout bottomView;
-    private boolean selectMode;
-    private MenuItem selectModeMenuItem;
-    private MenuItem selectAllMenuItem;
-    private FloatingActionButton floatingActionButton;
-    private String currentToolbarTitle;
-
-    private static final String[] PERMISSIONS = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE,
-    };
+    private ActivityMainBinding binding;
 
     private View.OnClickListener drawerListener = new View.OnClickListener() {
         @Override
@@ -88,88 +65,52 @@ public class MainActivity extends AppCompatActivity
         }
     };
 
-
-    private void closeSelectMode() {
-        toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
-        toolbar.setNavigationOnClickListener(drawerListener);
-        toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
-        toolbarTextView.setText(currentToolbarTitle);
-
-        if (onSelectModeClickListener != null)
-            onSelectModeClickListener.onCancel();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Window window = getWindow();
-            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-            window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
-        }
-
-        selectMode = false;
-        selectModeMenuItem.setVisible(true);
-        selectAllMenuItem.setVisible(false);
-        bottomView.setVisibility(View.GONE);
-        floatingActionButton.setVisibility(View.VISIBLE);
-    }
-
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
+        binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        mainViewModel = new MainViewModel(this);
+        binding.setViewmodel(mainViewModel);
         createNotificationChannel();
-        checkPermission();
+        setupToolbar();
+        setupNavigationDrawer();
+        setupBottomView();
 
-        toolbar = findViewById(R.id.main_toolbar);
-        drawerLayout = findViewById(R.id.drawer_layout);
-        bottomView = findViewById(R.id.bottom_view);
-        floatingActionButton = findViewById(R.id.upload_floating_button);
-        floatingActionButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                showFileChooser();
-            }
-        });
 
-        bottomView.findViewById(R.id.bottom_download_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onSelectModeClickListener.onDownload();
-            }
-        });
+        mainViewModel.checkPermission();
 
-        bottomView.findViewById(R.id.bottom_delete_button).setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                onSelectModeClickListener.onDelete();
-            }
-        });
-
-        initDrawerToggle();
-        NavigationView navigationView = findViewById(R.id.navigation_view);
-        navigationView.setNavigationItemSelectedListener(this);
-
-        currentToolbarTitle = getString(R.string.all_photo);
-        Fragment fragment = new PhotoFragment();
+        BaseFragment fragment = new PhotoFragment();
         getSupportFragmentManager().beginTransaction().add(R.id.content_fragment, fragment).commit();
-        onSelectModeClickListener = (PhotoFragment) fragment;
+        onSelectModeClickListener = fragment;
+        fragment.setMainViewModel(mainViewModel);
 
+        binding.uploadFloatingButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mainViewModel.showFileChooser();
+            }
+        });
+
+        mainViewModel.snackbarText.addOnPropertyChangedCallback(new Observable.OnPropertyChangedCallback() {
+            @Override
+            public void onPropertyChanged(Observable observable, int i) {
+                showSnackbar();
+            }
+        });
     }
 
-    private void showFileChooser() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        intent.setType("*/*");
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-
-        startActivityForResult(Intent.createChooser(intent, "Select a File to Upload"), FILE_SELECT_CODE);
-    }
-
-    private void initDrawerToggle() {
+    private void setupToolbar() {
+        toolbar = binding.mainToolbar;
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         getSupportActionBar().setDisplayShowTitleEnabled(false);
 
-        toolbarTextView = toolbar.findViewById(R.id.toolbar_text_view);
-        toolbarTextView.setText(R.string.all_photo);
+        mainViewModel.currentToolbarTitle.set(getString(R.string.all_photo));
+    }
+
+    private void setupNavigationDrawer() {
+        drawerLayout = binding.drawerLayout;
+        NavigationView navigationView = binding.navigationView;
+        navigationView.setNavigationItemSelectedListener(this);
 
         toggle = new ActionBarDrawerToggle(this, drawerLayout, toolbar, R.string.drawer_start, R.string.drawer_end);
         drawerLayout.addDrawerListener(toggle);
@@ -178,6 +119,27 @@ public class MainActivity extends AppCompatActivity
         toggle.setDrawerIndicatorEnabled(false);
         toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
         toolbar.setNavigationOnClickListener(drawerListener);
+    }
+
+    private void setupBottomView() {
+        bottomView = binding.bottomView;
+        binding.bottomDownloadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSelectModeClickListener.onDownload();
+            }
+        });
+
+        binding.bottomDeleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onSelectModeClickListener.onDelete();
+            }
+        });
+    }
+
+    private void showSnackbar() {
+        Snackbar.make(binding.getRoot(), Objects.requireNonNull(mainViewModel.snackbarText.get()), Snackbar.LENGTH_SHORT).show();
     }
 
     private void createNotificationChannel() {
@@ -195,75 +157,15 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-
-    private void setJobSchedule() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            MediaStoreJobService.scheduleJob(this);
-        } else {
-            Intent mediaStoreService = new Intent(MainActivity.this, MediaStoreService.class);
-            startService(mediaStoreService);
-        }
-    }
-
-
-    private void checkPermission() {
-        if (!hasPermissions(PERMISSIONS)) {
-            ActivityCompat.requestPermissions(this, PERMISSIONS, EXTERNAL_STORAGE_PERMISSION_CODE);
-        } else {
-            setJobSchedule();
-        }
-    }
-
-    public boolean hasPermissions(String... permissions) {
-        if (permissions != null) {
-            for (String permission : permissions) {
-                if (ActivityCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        switch (requestCode) {
-            case EXTERNAL_STORAGE_PERMISSION_CODE:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    setJobSchedule();
-                }
-                break;
-            default:
-                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
+        mainViewModel.handlePermissionsResult(requestCode, permissions, grantResults);
     }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode) {
-            case FILE_SELECT_CODE:
-                if (resultCode == RESULT_OK) {
-                    Uri uri = data.getData();
-                    String path = FileUtils.getPath(this, uri);
-                    if (path != null) {
-                        DateFormat sdFormat = new SimpleDateFormat("yyyy. MM. dd HH:mm", Locale.KOREA);
-                        Date nowDate = new Date();
-                        String tempDate = sdFormat.format(nowDate);
-                        AppDatabase.getDatabase(this).fileDAO().insertFileStatus(new FileStatus(path, tempDate, "UPLOAD"));
-                        Snackbar.make(bottomView, "선택한 파일 업로드 요청", Snackbar.LENGTH_SHORT).show();
-                        sendNewMediaBroadCast();
-                    } else {
-                        Snackbar.make(bottomView, "가져올 수 없는 파일 입니다.", Snackbar.LENGTH_SHORT).show();
-                    }
-                }
-                break;
-        }
-    }
-
-    private void sendNewMediaBroadCast() {
-        Intent intent = new Intent("com.worksmobile.wm_project.NEW_MEDIA");
-        intent.setClass(this, MyBroadcastReceiver.class);
-        sendBroadcast(intent);
+        mainViewModel.handleActivityResult(requestCode, resultCode, data);
     }
 
     @Override
@@ -273,60 +175,47 @@ public class MainActivity extends AppCompatActivity
         switch (id) {
             case R.id.nav_photo:
                 fragment = new PhotoFragment();
-                currentToolbarTitle = getString(R.string.all_photo);
-                toolbarTextView.setText(currentToolbarTitle);
+                mainViewModel.currentToolbarTitle.set(getString(R.string.all_photo));
                 break;
             case R.id.nav_photo_map:
-                currentToolbarTitle = getString(R.string.photo_map);
-                toolbarTextView.setText(currentToolbarTitle);
+                mainViewModel.currentToolbarTitle.set(getString(R.string.photo_map));
                 drawerLayout.closeDrawer(GravityCompat.START);
                 getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, new MapFragment()).commit();
                 return true;
             case R.id.nav_video:
                 fragment = new VideoFragment();
-                currentToolbarTitle = getString(R.string.all_video);
-                toolbarTextView.setText(currentToolbarTitle);
+                mainViewModel.currentToolbarTitle.set(getString(R.string.all_video));
                 break;
 
             case R.id.nav_document:
                 fragment = new EtcFileFragment();
-                currentToolbarTitle = getString(R.string.etc_file);
-                toolbarTextView.setText(currentToolbarTitle);
+                mainViewModel.currentToolbarTitle.set(getString(R.string.etc_file));
+
                 break;
 
             case R.id.nav_trash:
                 fragment = new TrashFragment();
-                currentToolbarTitle = getString(R.string.trash_can);
-                toolbarTextView.setText(currentToolbarTitle);
+                mainViewModel.currentToolbarTitle.set(getString(R.string.trash_can));
                 break;
-
         }
 
         drawerLayout.closeDrawer(GravityCompat.START);
         if (fragment != null) {
             onSelectModeClickListener = (BaseFragment) fragment;
+            ((BaseFragment) fragment).setMainViewModel(mainViewModel);
             getSupportFragmentManager().beginTransaction().replace(R.id.content_fragment, fragment).commit();
         }
 
         return true;
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.toolbar_menu, menu);
-        selectModeMenuItem = menu.findItem(R.id.toolbar_check_button);
-        selectAllMenuItem = menu.findItem(R.id.toolbar_select_all);
-        return true;
-    }
-
-
     public void changeToolbarSelectMode() {
-        if (selectMode)
+        if (mainViewModel.selectMode.get())
             return;
 
         toggle.setHomeAsUpIndicator(R.drawable.ic_close);
         toolbar.setNavigationOnClickListener(selectModeCloseListener);
-        toolbarTextView.setText(R.string.choose_photo);
+        binding.toolbarTextView.setText(getString(R.string.choose_photo));
 
         toolbar.setBackgroundColor(getResources().getColor(R.color.colorDarkGray));
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -337,18 +226,30 @@ public class MainActivity extends AppCompatActivity
         }
 
         Animation slideUp = AnimationUtils.loadAnimation(this, R.anim.slide_up);
-        bottomView.setVisibility(View.VISIBLE);
         bottomView.startAnimation(slideUp);
-        selectModeMenuItem.setVisible(false);
-        selectAllMenuItem.setVisible(true);
-        floatingActionButton.setVisibility(View.GONE);
-        selectMode = true;
+    }
 
+    public void closeSelectMode() {
+        toggle.setHomeAsUpIndicator(R.drawable.ic_menu);
+        toolbar.setNavigationOnClickListener(drawerListener);
+        toolbar.setBackgroundColor(getResources().getColor(R.color.colorNaverGreen));
+
+        binding.toolbarTextView.setText(mainViewModel.currentToolbarTitle.get());
+
+        if (onSelectModeClickListener != null)
+            onSelectModeClickListener.onCancel();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+            window.setStatusBarColor(getResources().getColor(R.color.colorNaverGreenDark));
+        }
     }
 
     @Override
     public void onBackPressed() {
-        if (selectMode) {
+        if (mainViewModel.selectMode.get()) {
             closeSelectMode();
         } else {
             DrawerLayout drawer = findViewById(R.id.drawer_layout);

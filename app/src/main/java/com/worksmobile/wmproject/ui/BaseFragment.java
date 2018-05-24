@@ -1,74 +1,55 @@
 package com.worksmobile.wmproject.ui;
 
 
-import android.annotation.SuppressLint;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
-import android.databinding.ObservableArrayList;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ProgressBar;
 
 import com.worksmobile.wmproject.DriveHelper;
+import com.worksmobile.wmproject.MainViewModel;
 import com.worksmobile.wmproject.R;
 import com.worksmobile.wmproject.ThumbnailItemDecoration;
 import com.worksmobile.wmproject.ThumbnailRecyclerViewAdapter;
-import com.worksmobile.wmproject.callback.ListCallback;
+import com.worksmobile.wmproject.callback.AdapterNavigator;
 import com.worksmobile.wmproject.callback.OnModeChangeListener;
 import com.worksmobile.wmproject.callback.OnSelectModeClickListener;
-import com.worksmobile.wmproject.callback.StateCallback;
 import com.worksmobile.wmproject.databinding.FragmentBaseBinding;
 import com.worksmobile.wmproject.value_object.DriveFile;
-import com.worksmobile.wmproject.value_object.MediaMetadata;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
 import java.util.Locale;
 
-public abstract class BaseFragment extends Fragment implements OnSelectModeClickListener {
+public abstract class BaseFragment extends Fragment
+        implements OnSelectModeClickListener, AdapterNavigator {
     private static final String TAG = "BASE_FRAGMENT";
 
-    private FragmentBaseBinding binding;
-
+    protected MainViewModel mainViewModel;
     protected RecyclerView recyclerView;
     protected View.OnClickListener itemClickListener;
-    public ObservableArrayList<DriveFile> fileList;
-
-    private SwipeRefreshLayout swipeContainer;
-    protected DriveHelper driveHelper;
     protected ThumbnailRecyclerViewAdapter adapter;
+
     private View.OnClickListener selectModeClickListener;
     private OnModeChangeListener modeChangeListener;
-    private int currentSortingCriteria;
-    protected ProgressBar progressBar;
-    private int deleteCount = 0;
 
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        binding = DataBindingUtil.inflate(inflater, R.layout.fragment_base, container, false);
+        FragmentBaseBinding binding = DataBindingUtil.inflate(inflater, R.layout.fragment_base, container, false);
         View view = binding.getRoot();
         setHasOptionsMenu(true);
 
-        currentSortingCriteria = R.id.taken_time_new;
-        driveHelper = new DriveHelper(getContext());
-        fileList= new ObservableArrayList<>();
-
         recyclerView = binding.thumbnailRecyclerview;
-        progressBar = binding.viewProgressBar;
 
         initClickListener();
         adapter = new ThumbnailRecyclerViewAdapter(itemClickListener, modeChangeListener);
@@ -76,20 +57,16 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
         recyclerView.addItemDecoration(new ThumbnailItemDecoration(3, 3));
         recyclerView.setAdapter(adapter);
 
-        binding.setThumbnailList(fileList);
-
-
-        swipeContainer = binding.pullToRefresh;
-        swipeContainer.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                requestWholeList();
-            }
-        });
-
-        requestWholeList();
+        binding.setViewmodel(mainViewModel);
+        mainViewModel.requestWholeList(isTrashFragment(), getMimeType());
+        this.mainViewModel.setAdapterNavigator(this);
 
         return view;
+    }
+
+    public void setMainViewModel(MainViewModel mainViewModel) {
+        this.mainViewModel = mainViewModel;
+        this.mainViewModel.currentSortingCriteria.set(R.id.taken_time_new);
     }
 
     public void initClickListener() {
@@ -98,7 +75,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
                 Intent intent = new Intent(getActivity(), ImageViewerActivity.class);
-                intent.putExtra("FILE_LIST", fileList);
+                intent.putExtra("FILE_LIST", mainViewModel.fileList);
                 intent.putExtra("VIEWER_POSITION", itemPosition);
                 startActivity(intent);
             }
@@ -109,34 +86,38 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
             public void onClick(View view) {
                 int itemPosition = recyclerView.getChildLayoutPosition(view);
                 adapter.selectItem(itemPosition);
+                changeSelectMode();
             }
         };
 
         modeChangeListener = new OnModeChangeListener() {
             @Override
             public void onChanged() {
-                ((MainActivity) getActivity()).changeToolbarSelectMode();
-                chageSelectMode();
+                changeSelectMode();
             }
         };
     }
 
-    private void chageSelectMode() {
+    private void changeSelectMode() {
         adapter.setItemClickListener(selectModeClickListener);
+        ((MainActivity) getActivity()).changeToolbarSelectMode();
+        mainViewModel.selectMode.set(true);
+        getActivity().invalidateOptionsMenu();
     }
 
     private void changeViewerMode() {
         adapter.clearCheckedItem();
         adapter.setItemClickListener(itemClickListener);
+        mainViewModel.selectMode.set(false);
+        getActivity().invalidateOptionsMenu();
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-
         switch (item.getItemId()) {
             case R.id.toolbar_check_button:
                 ((MainActivity) getActivity()).changeToolbarSelectMode();
-                chageSelectMode();
+                changeSelectMode();
                 break;
 
             case R.id.toolbar_select_all:
@@ -151,107 +132,21 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 } else {
                     item.setChecked(true);
                 }
-                currentSortingCriteria = item.getItemId();
-                sortList(item.getItemId());
+                mainViewModel.currentSortingCriteria.set(item.getItemId());
                 break;
 
         }
         return true;
     }
 
-    private void requestWholeList() {
-        progressBar.setVisibility(View.VISIBLE);
-        driveHelper.enqueueListCreationCall(isTrashFragment(), getMimeType(), new ListCallback() {
-            @Override
-            public void onSuccess(DriveFile[] driveFiles) {
-                adapter.clearCheckedItem();
-                fileList.clear();
-                fileList.addAll(Arrays.asList(driveFiles));
-                sortList(currentSortingCriteria);
-                if (swipeContainer.isRefreshing())
-                    swipeContainer.setRefreshing(false);
-
-                progressBar.setVisibility(View.GONE);
-
-
-                /**
-                 이미지 파일의 위도 경도가 존재한다면 추후 위도 경도 쿼리를 진행하기 위해 properties Update과정을 거친다. (마이그레이션 코드 추후 삭제할것)
-                 */
-                for (DriveFile file : driveFiles) {
-                    MediaMetadata mediaMetadata = file.getImageMediaMetadata();
-                    if (mediaMetadata != null) {
-                        if (file.getProperties() == null && mediaMetadata.getLocationInfo() != null)
-                            driveHelper.setLocationProperties(file, null);
-                    }
-                }
-            }
-
-            @Override
-            public void onFailure(String msg) {
-
-            }
-        });
-    }
-
-    private void sortList(int sortBy) {
-        switch (sortBy) {
-            case R.id.taken_time_new:
-                Collections.sort(fileList, (o1, o2) -> {
-                    Date date1 = getValidTakenTime(o1.getTakenTime(), o1.getCreatedTime());
-                    Date date2 = getValidTakenTime(o2.getTakenTime(), o2.getCreatedTime());
-                    return date2.compareTo(date1);
-                });
-                break;
-            case R.id.taken_time_old:
-                Collections.sort(fileList, (o1, o2) -> {
-                    Date date1 = getValidTakenTime(o1.getTakenTime(), o1.getCreatedTime());
-                    Date date2 = getValidTakenTime(o2.getTakenTime(), o2.getCreatedTime());
-                    return date1.compareTo(date2);
-                });
-                break;
-            case R.id.uploaded_time_new:
-                Collections.sort(fileList, (o1, o2) -> {
-                    if (o1.getCreatedTime() == null || o2.getCreatedTime() == null)
-                        return 0;
-                    return o2.getCreatedTime().compareTo(o1.getCreatedTime());
-                });
-                break;
-            case R.id.uploaded_time_old:
-                Collections.sort(fileList, (o1, o2) -> {
-                    if (o1.getCreatedTime() == null || o2.getCreatedTime() == null)
-                        return 0;
-                    return o1.getCreatedTime().compareTo(o2.getCreatedTime());
-                });
-                break;
-        }
-        adapter.notifyDataSetChanged();
-    }
-
-    private Date getValidTakenTime(String takenTime, Date createdTime) {
-        Date date = null;
-        try {
-            if (takenTime == null)
-                date = createdTime;
-            else {
-                if (takenTime.matches("\\d{4}:\\d{2}:\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
-                    date = new SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.KOREA).parse(takenTime);
-                } else if (takenTime.matches("\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}")) {
-                    date = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.KOREA).parse(takenTime);
-                }
-
-            }
-        } catch (ParseException e) {
-            e.printStackTrace();
-        }
-        return date;
-    }
-
-
     @Override
     public void onCancel() {
         changeViewerMode();
     }
 
+    /**
+     * ViewModel
+     */
     @Override
     public void onDownload() {
         ArrayList<DriveFile> downloadList = adapter.getCheckedFileList();
@@ -268,39 +163,7 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
     @Override
     public void onResume() {
         Log.d(TAG, "onResume");
-//        requestWholeList();
         super.onResume();
-
-    }
-
-    public void deleteFile() {
-        deleteCount = 0;
-        int totalDeleteCount = adapter.getCheckedFileList().size();
-
-        progressBar.setVisibility(View.VISIBLE);
-        for (DriveFile file : adapter.getCheckedFileList()) {
-            driveHelper.enqueueDeleteCall(file, new StateCallback() {
-                @Override
-                public void onSuccess(String msg) {
-                    if (msg == null) {
-                        deleteCount++;
-                        int position = fileList.indexOf(file);
-                        fileList.remove(position);
-
-                        if (deleteCount == totalDeleteCount) {
-                            progressBar.setVisibility(View.GONE);
-                            adapter.clearCheckedItem();
-//                            adapter.notifyDataSetChanged();
-                        }
-                    }
-                }
-
-                @Override
-                public void onFailure(String msg) {
-                }
-            });
-        }
-
     }
 
     private void createAlertDialog(int count) {
@@ -318,19 +181,33 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
                 .setNegativeButton("예",
                         new DialogInterface.OnClickListener() {
                             public void onClick(DialogInterface dialog, int id) {
-                                deleteFile();
+                                mainViewModel.deleteFile(adapter.getCheckedFileList(),isTrashFragment());
                                 dialog.cancel();
                             }
                         });
 
         AlertDialog alertDialog = alertDialogBuilder.create();
         alertDialog.show();
+    }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.toolbar_menu, menu);
+        menu.findItem(R.id.toolbar_check_button).setVisible(!mainViewModel.selectMode.get());
+        menu.findItem(R.id.toolbar_select_all).setVisible(mainViewModel.selectMode.get());
     }
 
     public abstract String getMimeType();
 
     public abstract boolean isTrashFragment();
 
+    @Override
+    public void notifyChange() {
+        adapter.notifyDataSetChanged();
+    }
 
+    @Override
+    public void clearList() {
+        adapter.clearCheckedItem();
+    }
 }
