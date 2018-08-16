@@ -27,6 +27,7 @@ dependencies {
     implementation 'com.android.support:appcompat-v7:26.1.0'
     implementation 'com.android.support.constraint:constraint-layout:1.1.0'
     implementation 'com.android.support:design:26.1.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     implementation("com.github.bumptech.glide:glide:4.6.1") {
         exclude group: "com.android.support"
@@ -41,6 +42,8 @@ dependencies {
     implementation 'com.google.maps.android:android-maps-utils:0.4+'
     implementation 'com.squareup.retrofit2:retrofit:2.4.0'
     implementation 'com.squareup.retrofit2:converter-gson:2.3.0'
+
+    implementation 'com.arasthel:spannedgridlayoutmanager:2.0.3'
 
     implementation "android.arch.persistence.room:runtime:$rootProject.roomVersion"
     annotationProcessor "android.arch.persistence.room:compiler:$rootProject.roomVersion"
