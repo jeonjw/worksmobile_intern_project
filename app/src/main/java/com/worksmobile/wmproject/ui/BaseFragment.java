@@ -124,6 +124,8 @@ public abstract class BaseFragment extends Fragment implements OnSelectModeClick
 		adapter.setSpanSize();
 //		adapter.setSelectMode(true);
 //		adapter.setItemClickListener(selectModeClickListener);
+		//asdfasf
+		//fefefe
 	}
 
 	private void changeViewerMode() {
